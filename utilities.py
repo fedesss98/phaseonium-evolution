@@ -78,6 +78,22 @@ def cascade_evolution(eta, joint_system, Vs, timedelta=1e-02):
         total_system = U * total_system * U.dag()
     return total_system
 
+
+def interact(system, ancilla, interactions, time):
+        """
+        Unitary Evolution.
+        Parameters
+        ----------
+        ancilla: QAncilla (Qobj)
+        interactions: array or list
+        time: float
+        """
+        unitaries = [(-1j*interaction*time).expm() for interaction in interactions]
+        total_system = tensor(system, ancilla)
+        for U in unitaries:
+            total_system = U * total_system * U.dag()
+        return total_system
+
 def get_temperature(rho, energy):
     """Find kT from Boltzmann distribution"""
     return - energy / np.log(rho.diag()[1].real / rho.diag()[0].real)
