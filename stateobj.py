@@ -267,3 +267,46 @@ class JointSystem(Qobj):
 
     def __getitem__(self, index):
         return self.systems[index]
+
+
+class Physics:
+    def __init__(self, dimension, interaction_time, interaction_strength):
+        theta = 1 * interaction_strength * interaction_time
+        # Creation and Annihilation Operators
+        self.ad = create(dimension)
+        self.a = destroy(dimension)
+        
+        self.a1 = tensor(self.a, qeye(dimension))
+        self.ad1 = tensor(self.ad, qeye(dimension))
+        self.a2 = tensor(qeye(dimension), self.a)
+        self.ad2 = tensor(qeye(dimension), self.ad)
+        # Number Operators
+        self.ada = self.ad * self.a
+        self.aad = self.ad * self.a + 1
+        # Ancilla Operators:
+        #   Sigma Plus Operator B-
+        self.sigmaplus = Qobj([
+            [0, 1, 1],
+            [0, 0, 0],
+            [0, 0, 0]
+        ])
+        #   Sigma Minus Operator B+
+        self.sigmaminus = Qobj([
+            [0, 0, 0],
+            [1, 0, 0],
+            [1, 0, 0],  
+        ])
+
+        # Bosonic Operators
+        self.C = (theta*(2*self.aad).sqrtm()).cosm()
+        self.Cp = (theta*(2*self.ada).sqrtm()).cosm()
+        dividend = ((2*self.aad).sqrtm()).inv()
+        sine = (theta*(2*self.aad).sqrtm()).sinm()
+        self.S = self.ad * sine * dividend
+        self.Sd = sine * dividend * self.a
+        
+        # Interaction
+        self.V = tensor(self.a, self.sigmaplus) + tensor(self.ad, self.sigmaminus)
+        # Entangled System interactions
+        self.V1 = tensor(self.a1, self.sigmaplus) + tensor(self.ad1, self.sigmaminus)
+        self.V2 = tensor(self.a2, self.sigmaplus) + tensor(self.ad2, self.sigmaminus)
