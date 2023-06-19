@@ -25,7 +25,43 @@ def check_rho_at_time(time, rho_in_time):
           f'Coefficients Ratio = {energy_exp:>}\n'
           f'System Temperature = {temperature:>}')    
 
-        
+def create_ancilla_qobj(alpha = complex(1/math.sqrt(2), 0),
+                        beta = complex(1/math.sqrt(2), 0),
+                        phi = np.pi/2,):
+    eta = [
+        [alpha**2, 0                           , 0                          ],
+        [0       , beta**2/2                   , beta**2/2*cmath.exp(1j*phi)],
+        [0       , beta**2/2*cmath.exp(-1j*phi), beta**2/2                  ],
+    ]
+    return Qobj(eta)
+
+def create_system_qobj(dm_type='fock', n_dims=4, **kwargs):
+    match dm_type:
+        case 'coherent':
+            alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
+            state = coherent_dm(n_dims, alpha)
+        case 'thermal-enr':
+            dims = n_dims if isinstance(n_dims, list) else list([n_dims]) 
+            excitations = kwargs.get('excitations') if 'excitations' in kwargs else 1
+            state = enr_thermal_dm(dims,excitations,n=1)
+        case 'thermal':
+            n = kwargs.get('n') if 'n' in kwargs else 1
+            state = thermal_dm(n_dims, n)
+        case 'fock':
+            n = kwargs.get('n') if 'n' in kwargs else 0
+            state = fock_dm(n_dims, n)
+        case 'maxmix':
+            state = maximally_mixed_dm(n_dims)
+        case 'random':
+            seed = kwargs.get('seed') if 'seed' in kwargs else 21
+            state = rand_dm(n_dims)
+        case 'generic':
+            a = kwargs.get('a') if 'a' in kwargs else complex(1, 0)
+            b = kwargs.get('b') if 'b' in kwargs else complex(0, 0)
+            state = Qobj(np.array([[a, b], [b.conjugate(), 1-a]]))
+    return state
+    
+
 def create_ancilla(alpha = complex(1/math.sqrt(2), 0),
                    beta = complex(1/math.sqrt(2), 0),
                    phi = np.pi/2,):
@@ -58,10 +94,12 @@ def create_system(dm_type='fock', n_dims=4, **kwargs):
             state = Qobj(np.array([[a, b], [b.conjugate(), 1-a]]))
     return QState(state)
 
+
 def evolve(state, V, timedelta):
     U = (-1j*V*timedelta).expm()
     total_evolution = U * state * U.dag()
     return total_evolution
+
 
 def cascade_evolution(eta, joint_system, Vs, timedelta=1e-02):
     """
@@ -93,6 +131,7 @@ def interact(system, ancilla, interactions, time):
         for U in unitaries:
             total_system = U * total_system * U.dag()
         return total_system
+
 
 def get_temperature(rho, energy):
     """Find kT from Boltzmann distribution"""
