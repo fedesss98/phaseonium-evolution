@@ -275,11 +275,17 @@ class Physics:
         # Creation and Annihilation Operators
         self.ad = create(dimension)
         self.a = destroy(dimension)
+        self.q = position(dimension)
+        self.p = momentum(dimension)
         
         self.a1 = tensor(self.a, qeye(dimension))
         self.ad1 = tensor(self.ad, qeye(dimension))
         self.a2 = tensor(qeye(dimension), self.a)
         self.ad2 = tensor(qeye(dimension), self.ad)
+        self.q1 = tensor(self.q, qeye(dimension))
+        self.p1 = tensor(self.p, qeye(dimension))
+        self.q2 = tensor(qeye(dimension), self.q)
+        self.p2 = tensor(qeye(dimension), self.p)
         # Number Operators
         self.ada = self.ad * self.a
         self.aad = self.ad * self.a + 1
