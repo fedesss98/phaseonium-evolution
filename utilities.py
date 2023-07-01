@@ -4,6 +4,7 @@ import numpy as np
 from qutip import *
 
 from stateobj import QState, QAncilla
+from stateobj import Physics as p
 
 from IPython.display import Markdown, display
 
@@ -25,6 +26,7 @@ def check_rho_at_time(time, rho_in_time):
           f'Coefficients Ratio = {energy_exp:>}\n'
           f'System Temperature = {temperature:>}')    
 
+
 def create_ancilla_qobj(alpha = complex(1/math.sqrt(2), 0),
                         beta = complex(1/math.sqrt(2), 0),
                         phi = np.pi/2,):
@@ -34,6 +36,24 @@ def create_ancilla_qobj(alpha = complex(1/math.sqrt(2), 0),
         [0       , beta**2/2*cmath.exp(-1j*phi), beta**2/2                  ],
     ]
     return Qobj(eta)
+
+def evolve_ancilla_qobj(rho_st,
+                        alpha = complex(1/math.sqrt(2), 0),
+                        beta = complex(1/math.sqrt(2), 0),
+                        phi = np.pi/2,
+                        ):
+    trace_factor = (p.Cp * rho_st).tr()
+    a = alpha**2
+    b = beta**2/2
+    g2g1 = b*(np.cos(phi) - 1j*np.sin(phi)*trace_factor)
+    g1g2 = b*(np.cos(phi) + 1j*np.sin(phi)*trace_factor)
+    eta = [
+        [a, 0        , 0        ],
+        [0       , b, g2g1     ],
+        [0       , g1g2     , b],
+    ]
+    return Qobj(eta)
+
 
 def create_system_qobj(dm_type='fock', n_dims=4, **kwargs):
     match dm_type:
