@@ -5,6 +5,7 @@ Circuit and Quantum Gate utilities
 import qutip
 import numpy as np
 import random
+from tqdm import trange
 
 
 class Gate:
@@ -232,7 +233,7 @@ class Circuit:
     def loop(self, times, start=0, stop=-1):
         stop = len(self.gates) if stop == -1 else stop
         loop_gates = self.gates[start: stop]
-        for t in range(times):
+        for t in trange(times):
             self.t += 1
             for step, gate in enumerate(loop_gates):
                 self.step = step + start

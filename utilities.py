@@ -9,6 +9,111 @@ from stateobj import Physics as p
 from IPython.display import Markdown, display
 
 
+class Matrix:
+    def __init__(self, matrix):
+        self.matrix = matrix
+
+    def _repr_latex_(self):
+        return np_display(self.matrix)
+
+
+def np_display(a: np.ndarray):
+    if a.ndim == 1:
+        raise ValueError("Cannot display 1D array")
+
+    M, N = a.shape
+
+    s = r'\begin{equation*}\left(\begin{array}{*{11}c}'
+
+    def _format_float(value):
+        if value == 0.0:
+            return "0.0"
+        elif abs(value) > 1000.0 or abs(value) < 0.001:
+            return ("%.3e" % value).replace("e", r"\times10^{") + "}"
+        elif abs(value - int(value)) < 0.001:
+            return "%.1f" % value
+        else:
+            return "%.3f" % value
+
+    def _format_element(m, n, d):
+        s = " & " if n > 0 else ""
+        if type(d) == str:
+            return s + d
+        else:
+            if abs(np.imag(d)) < settings.atol:
+                return s + _format_float(np.real(d))
+            elif abs(np.real(d)) < settings.atol:
+                return s + _format_float(np.imag(d)) + "j"
+            else:
+                s_re = _format_float(np.real(d))
+                s_im = _format_float(np.imag(d))
+                if np.imag(d) > 0.0:
+                    return s + "(" + s_re + "+" + s_im + "j)"
+                else:
+                    return s + "(" + s_re + s_im + "j)"
+
+    if M > 10 and N > 10:
+        # truncated matrix output
+        for m in range(5):
+            for n in range(5):
+                s += _format_element(m, n, a[m, n])
+            s += r' & \cdots'
+            for n in range(N - 5, N):
+                s += _format_element(m, n, a[m, n])
+            s += r'\\'
+
+        for n in range(5):
+            s += _format_element(m, n, r'\vdots')
+        s += r' & \ddots'
+        for n in range(N - 5, N):
+            s += _format_element(m, n, r'\vdots')
+        s += r'\\'
+
+        for m in range(M - 5, M):
+            for n in range(5):
+                s += _format_element(m, n, a[m, n])
+            s += r' & \cdots'
+            for n in range(N - 5, N):
+                s += _format_element(m, n, a[m, n])
+            s += r'\\'
+
+    elif M > 10 and N <= 10:
+        # truncated vertically elongated matrix output
+        for m in range(5):
+            for n in range(N):
+                s += _format_element(m, n, a[m, n])
+            s += r'\\'
+
+        for n in range(N):
+            s += _format_element(m, n, r'\vdots')
+        s += r'\\'
+
+        for m in range(M - 5, M):
+            for n in range(N):
+                s += _format_element(m, n, a[m, n])
+            s += r'\\'
+
+    elif M <= 10 and N > 10:
+        # truncated horizontally elongated matrix output
+        for m in range(M):
+            for n in range(5):
+                s += _format_element(m, n, a[m, n])
+            s += r' & \cdots'
+            for n in range(N - 5, N):
+                s += _format_element(m, n, a[m, n])
+            s += r'\\'
+
+    else:
+        # full output
+        for m in range(M):
+            for n in range(N):
+                s += _format_element(m, n, a[m, n])
+            s += r'\\'
+
+    s += r'\end{array}\right)\end{equation*}'
+    return s
+
+
 def print_hello():
     print('Hello world!')
 
