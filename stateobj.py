@@ -272,20 +272,22 @@ class JointSystem(Qobj):
 class Physics:
     def __init__(self, dimension, interaction_time, interaction_strength):
         theta = 1 * interaction_strength * interaction_time
+        # Identity
+        self.qeye = qeye(dimension)
         # Creation and Annihilation Operators
         self.ad = create(dimension)
         self.a = destroy(dimension)
         self.q = position(dimension)
         self.p = momentum(dimension)
         
-        self.a1 = tensor(self.a, qeye(dimension))
-        self.ad1 = tensor(self.ad, qeye(dimension))
-        self.a2 = tensor(qeye(dimension), self.a)
-        self.ad2 = tensor(qeye(dimension), self.ad)
-        self.q1 = tensor(self.q, qeye(dimension))
-        self.p1 = tensor(self.p, qeye(dimension))
-        self.q2 = tensor(qeye(dimension), self.q)
-        self.p2 = tensor(qeye(dimension), self.p)
+        self.a1 = tensor(self.a, self.qeye)
+        self.ad1 = tensor(self.ad, self.qeye)
+        self.a2 = tensor(self.qeye, self.a)
+        self.ad2 = tensor(self.qeye, self.ad)
+        self.q1 = tensor(self.q, self.qeye)
+        self.p1 = tensor(self.p, self.qeye)
+        self.q2 = tensor(self.qeye, self.q)
+        self.p2 = tensor(self.qeye, self.p)
         # Number Operators
         self.ada = self.ad * self.a
         self.aad = self.ad * self.a + 1
@@ -316,3 +318,24 @@ class Physics:
         # Entangled System interactions
         self.V1 = tensor(self.a1, self.sigmaplus) + tensor(self.ad1, self.sigmaminus)
         self.V2 = tensor(self.a2, self.sigmaplus) + tensor(self.ad2, self.sigmaminus)
+
+    def kraus_operators_2_cavities(self, ga, gb):
+        cc = qutip.tensor(self.C, self.C)
+        ssd = qutip.tensor(self.S, self.Sd)
+        ek_1 = np.sqrt(ga / 2) * (cc - 2 * ssd)
+
+        scp = qutip.tensor(self.S, self.Cp)
+        cs = qutip.tensor(self.C, self.S)
+        ek_2 = np.sqrt(ga) * (scp + cs)
+
+        sdc = qutip.tensor(self.Sd, self.C)
+        cpsd = qutip.tensor(self.Cp, self.Sd)
+        ek_3 = np.sqrt(gb) * (sdc + cpsd)
+
+        cpcp = qutip.tensor(self.Cp, self.Cp)
+        sds = qutip.tensor(self.Sd, self.S)
+        ek_4 = np.sqrt(gb / 2) * (cpcp - 2 * sds)
+
+        ek_5 = np.sqrt(1 - ga/2 - gb/2) * qutip.tensor(self.qeye, self.qeye)
+
+        return [ek_1, ek_2, ek_3, ek_4, ek_5]
