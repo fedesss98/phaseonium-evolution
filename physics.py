@@ -52,11 +52,8 @@ def dissipator(x: Qobj | np.ndarray, system: Qobj | np.ndarray, kind='regular'):
     return sandwich - 1/2 * comm
 
 
-def master_equation(system, ga, gb, *operators):
-    c = operators[0]
-    cp = operators[1]
-    s = operators[2]
-    sd = operators[3]
+def master_equation(system, ga, gb, operators):
+    c, cp, s, sd = operators
 
     # Dissipators
     d_cc_2ssd = dissipator(np.kron(c, c) - 2*np.kron(s, sd), system)

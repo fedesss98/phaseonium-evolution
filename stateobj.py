@@ -163,6 +163,7 @@ class QAncilla(Qobj):
     
     def final_temperature_per_energy(self):
         return 1 / math.log(self.factor)
+
     
 
 class JointSystem(Qobj):
@@ -318,6 +319,10 @@ class Physics:
         # Entangled System interactions
         self.V1 = tensor(self.a1, self.sigmaplus) + tensor(self.ad1, self.sigmaminus)
         self.V2 = tensor(self.a2, self.sigmaplus) + tensor(self.ad2, self.sigmaminus)
+
+    @property
+    def bosonic_operators(self):
+        return [self.C, self.Cp, self.S, self.Sd]
 
     def kraus_operators_2_cavities(self, ga, gb):
         cc = qutip.tensor(self.C, self.C)
