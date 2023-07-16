@@ -18,9 +18,9 @@ import math
 import utilities as use
 from physics import *
 from stateobj import Physics
-from observables import entropy_vn, purity
+from observables import entropy_vn, purity, covariance
 
-TIMESTEPS = 10000
+TIMESTEPS = 9000
 TIMEDELTA = 1
 OMEGA = 0.5  # Strength of Interaction
 
@@ -53,8 +53,8 @@ def check_file_metadata(filename, d):
 
 def create_systems(alpha, beta, phi, n1, n2, d):
     eta = use.create_ancilla_qobj(alpha, beta, phi)
-    rho1 = use.create_system_qobj('fock', n=n1, n_dims=d)
-    rho2 = use.create_system_qobj('fock', n=n2, n_dims=d)
+    rho1 = use.create_system_qobj('coherent', alpha=n1, n_dims=d)
+    rho2 = use.create_system_qobj('coherent', alpha=n2, n_dims=d)
     return eta, rho1, rho2
 
 
@@ -149,9 +149,12 @@ def main(dims):
 
     # Create Bosonic operators for ME evolution
     operators = p.bosonic_operators
+    # Quadrature Operators Vector
+    quadratures = [p.q1.full(), p.p1.full(), p.q2.full(), p.p2.full()]
 
     entropies = list()
     purities = list()
+    covariances = list()
 
     # Check if a steady state exists
     if ga / gb < 1:
@@ -165,12 +168,12 @@ def main(dims):
             print(f'Hilbert space truncation is no more valid at step {t}')
             break
         else:
-            entropies.append(entropy_vn(rho))
-            purities.append(purity(rho))
+            covariances.append(covariance(rho, quadratures))
 
     # Save data
-    np.save(f'../objects/rho_entropy_D{dims}_t{t + 1}_dt{TIMEDELTA}', entropies)
-    np.save(f'../objects/rho_purity_D{dims}_t{t + 1}_dt{TIMEDELTA}', purities)
+    # np.save(f'../objects/rho_entropy_D{dims}_t{t + 1}_dt{TIMEDELTA}', entropies)
+    # np.save(f'../objects/rho_purity_D{dims}_t{t + 1}_dt{TIMEDELTA}', purities)
+    np.save(f'../objects/rho_covariance_D{dims}_t{t+1}_dt{TIMEDELTA}', covariances)
     # Plot final density matrix
     rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
     plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
@@ -178,7 +181,7 @@ def main(dims):
 
 
 def iter_over_dimensions():
-    for dims in [10, 15, 33]:
+    for dims in [10, 15, 20]:
         main(dims)
 
 

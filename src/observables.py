@@ -1,4 +1,5 @@
 import numpy as np
+from physics import commutator, expval
 
 
 def calc_eignevalues(data: np.ndarray):
@@ -24,3 +25,17 @@ def entropy_vn(rho: np.ndarray, base=np.e, fast=True):
 
 def purity(rho: np.ndarray):
     return np.trace(rho @ rho)
+
+
+def cov_matrix_element(rho, op1, op2):
+    comm = commutator(op1, op2, kind='anti')
+    return 0.5 * expval(rho, comm) - expval(rho, op1) * expval(rho, op2)
+
+
+def covariance(rho: np.ndarray, operators):
+    cov = [
+        [cov_matrix_element(rho, operators[k], operators[l])
+         for k in range(len(operators))]
+        for l in range(len(operators))
+    ]
+    return cov

@@ -34,6 +34,18 @@ def commutator(a: Qobj | np.ndarray, b: Qobj | np.ndarray, kind='regular'):
         raise TypeError('a and B must be of the same type')
 
 
+def np_commutator(a: np.ndarray, b: np.ndarray):
+    return a @ b - b @ a
+
+
+def np_anticommutator(a: np.ndarray, b: np.ndarray):
+    return a @ b + b @ a
+
+
+def expval(rho: np.ndarray, obs: np.ndarray):
+    return np.trace(rho @ obs)
+
+
 def dissipator(x: Qobj | np.ndarray, system: Qobj | np.ndarray, kind='regular'):
     if kind == 'regular':
         if isinstance(system, Qobj):
