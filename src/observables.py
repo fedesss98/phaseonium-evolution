@@ -1,5 +1,5 @@
 import numpy as np
-from physics import commutator, expval
+from src.physics import commutator, np_expval, np_anticommutator
 
 
 def calc_eignevalues(data: np.ndarray):
@@ -28,8 +28,8 @@ def purity(rho: np.ndarray):
 
 
 def cov_matrix_element(rho, op1, op2):
-    comm = commutator(op1, op2, kind='anti')
-    return 0.5 * expval(rho, comm) - expval(rho, op1) * expval(rho, op2)
+    comm = np_anticommutator(op1, op2)
+    return 0.5 * np_expval(rho, comm) - np_expval(rho, op1) * np_expval(rho, op2)
 
 
 def covariance(rho: np.ndarray, operators):

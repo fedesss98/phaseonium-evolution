@@ -42,7 +42,7 @@ def np_anticommutator(a: np.ndarray, b: np.ndarray):
     return a @ b + b @ a
 
 
-def expval(rho: np.ndarray, obs: np.ndarray):
+def np_expval(rho: np.ndarray, obs: np.ndarray):
     return np.trace(rho @ obs)
 
 
