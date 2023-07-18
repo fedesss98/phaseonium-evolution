@@ -4,13 +4,7 @@ with finite interaction time TIMEDELTA.
 Can we use the interaction time as control parameter?
 
 TIMEDELTAS
-1e-01
-2e-01
-3e-01
-1
-2
-1e-02
-1e-03
+0.01, 0.05, 0.1, 0.5, 1, 5, 10
 """
 import cmath
 import math
@@ -20,7 +14,7 @@ from physics import *
 from stateobj import Physics
 from observables import entropy_vn, purity, covariance
 
-TIMESTEPS = 9000
+TIMESTEPS = 200
 TIMEDELTA = 1
 OMEGA = 0.5  # Strength of Interaction
 
@@ -29,6 +23,7 @@ A = complex(1 / math.sqrt(6), 0)
 B = cmath.sqrt(1 - A ** 2)
 PHI = np.pi / 2
 # Cavities parameters
+STATE = 'thermal'
 N1 = 1
 N2 = 1
 
@@ -53,8 +48,8 @@ def check_file_metadata(filename, d):
 
 def create_systems(alpha, beta, phi, n1, n2, d):
     eta = use.create_ancilla_qobj(alpha, beta, phi)
-    rho1 = use.create_system_qobj('coherent', alpha=n1, n_dims=d)
-    rho2 = use.create_system_qobj('coherent', alpha=n2, n_dims=d)
+    rho1 = use.create_system_qobj(STATE, n=n1, alpha=n1, n_dims=d)
+    rho2 = use.create_system_qobj(STATE, n=n2, alpha=n2, n_dims=d)
     return eta, rho1, rho2
 
 
@@ -69,7 +64,7 @@ def load_or_create(rho1, rho2, dims, create=False):
         files = [file.removesuffix('.npz') for file in os.listdir('../objects') if file.endswith('.npz')]
         times = [file_time(file) for file in files if check_file_metadata(file, dims)]
         t = max(times) if len(times) > 0 else 0
-        zipped_evolution = np.load(f'../objects/rho_evolution_d{dims}_t{t}_dt{TIMEDELTA}.npz')
+        zipped_evolution = np.load(f'../objects/{STATE}/rho_evolution_d{dims}_t{t}_dt{TIMEDELTA}.npz')
         rho = zipped_evolution[zipped_evolution.files[-1]]
         del zipped_evolution
         print(f'Loaded evolution until step {t}.')
@@ -132,8 +127,8 @@ def hilbert_is_good(system, check):
         raise ValueError('Check must be either "unitary" or "last_element".')
 
 
-def main(dims):
-    p = Physics(dimension=dims, interaction_strength=OMEGA, interaction_time=TIMEDELTA)
+def main(dims=20, timedelta=1):
+    p = Physics(dimension=dims, interaction_strength=OMEGA, interaction_time=timedelta)
 
     print(f'Starting evolution of {dims}-dimensional system')
     th = OMEGA * TIMEDELTA
@@ -152,9 +147,9 @@ def main(dims):
     # Quadrature Operators Vector
     quadratures = [p.q1.full(), p.p1.full(), p.q2.full(), p.p2.full()]
 
-    entropies = list()
-    purities = list()
-    covariances = list()
+    # entropies = [entropy_vn(rho)]
+    # purities = [purity(rho)]
+    covariances = [covariance(rho, quadratures)]
 
     # Check if a steady state exists
     if ga / gb < 1:
@@ -168,12 +163,14 @@ def main(dims):
             print(f'Hilbert space truncation is no more valid at step {t}')
             break
         else:
+            # entropies.append(entropy_vn(rho))
+            # purities.append(purity(rho))
             covariances.append(covariance(rho, quadratures))
 
     # Save data
-    # np.save(f'../objects/rho_entropy_D{dims}_t{t + 1}_dt{TIMEDELTA}', entropies)
-    # np.save(f'../objects/rho_purity_D{dims}_t{t + 1}_dt{TIMEDELTA}', purities)
-    np.save(f'../objects/rho_covariance_D{dims}_t{t+1}_dt{TIMEDELTA}', covariances)
+    # np.save(f'../objects/{STATE}/rho_entropy_D{dims}_t{t + 1}_dt{TIMEDELTA}', entropies)
+    # np.save(f'../objects/{STATE}/rho_purity_D{dims}_t{t + 1}_dt{TIMEDELTA}', purities)
+    np.save(f'../objects/{STATE}/rho_covariance_D{dims}_t{t+1}_dt{TIMEDELTA}', covariances)
     # Plot final density matrix
     rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
     plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
@@ -181,9 +178,14 @@ def main(dims):
 
 
 def iter_over_dimensions():
-    for dims in [10, 15, 20]:
-        main(dims)
+    for dims in [15, 20, 25, 30]:
+        main(dims=dims, timedelta=TIMEDELTA)
+
+
+def iter_over_timedeltas():
+    for timedelta in [0.01, 0.05, 0.1, 0.5, 1, 5, 10]:
+        main(dims=20, timedelta=timedelta)
 
 
 if __name__ == '__main__':
-    iter_over_dimensions()
+    iter_over_timedeltas()
