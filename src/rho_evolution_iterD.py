@@ -14,9 +14,10 @@ from physics import *
 from stateobj import Physics
 from observables import entropy_vn, purity, covariance
 
-TIMESTEPS = 200
-TIMEDELTA = 1
+TIMESTEPS = 1000
+TIMEDELTA = 1  # Interaction time
 OMEGA = 0.5  # Strength of Interaction
+D = 20  # Hilbert space dimension
 
 # Ancilla parameters
 A = complex(1 / math.sqrt(6), 0)
@@ -40,10 +41,10 @@ def file_timedelta(filename):
     return float(filename.split('_')[-1][2:])
 
 
-def check_file_metadata(filename, d):
+def check_file_metadata(filename, d, dt):
     dims = file_dims(filename)
     timedelta = file_timedelta(filename)
-    return dims == d and timedelta == TIMEDELTA
+    return dims == d and timedelta == dt
 
 
 def create_systems(alpha, beta, phi, n1, n2, d):
@@ -53,26 +54,13 @@ def create_systems(alpha, beta, phi, n1, n2, d):
     return eta, rho1, rho2
 
 
-def load_or_create(rho1, rho2, dims, create=False):
+def load_or_create(rho1, rho2, dims=D, timedelta=TIMEDELTA, create=False):
     """
     Create a new product state or load it from the last saved evolution file.
     Returns the state and the last time step.
     """
-    if create:
-        return np.kron(rho1.full(), rho2.full()).real, 0
-    try:
-        files = [file.removesuffix('.npz') for file in os.listdir('../objects') if file.endswith('.npz')]
-        times = [file_time(file) for file in files if check_file_metadata(file, dims)]
-        t = max(times) if len(times) > 0 else 0
-        zipped_evolution = np.load(f'../objects/{STATE}/rho_evolution_d{dims}_t{t}_dt{TIMEDELTA}.npz')
-        rho = zipped_evolution[zipped_evolution.files[-1]]
-        del zipped_evolution
-        print(f'Loaded evolution until step {t}.')
-    except FileNotFoundError:
-        rho = np.kron(rho1.full(), rho2.full()).real
-        t = 0
-        print('File not found. Starting a new evolution.')
-    return rho, t
+    suffix = '.npy'
+    return np.kron(rho1.full(), rho2.full()).real, 0
 
 
 def plot_density_matrix(system, diagonal=False, title=None):
@@ -129,9 +117,9 @@ def hilbert_is_good(system, check):
 
 def main(dims=20, timedelta=1):
     p = Physics(dimension=dims, interaction_strength=OMEGA, interaction_time=timedelta)
+    th = OMEGA * timedelta
+    print(f'Starting evolution of {dims}-dimensional system with interaction magnitude {th}')
 
-    print(f'Starting evolution of {dims}-dimensional system')
-    th = OMEGA * TIMEDELTA
     ga = np.real(2 * A ** 2)
     gb = np.real(B ** 2 * (1 + np.cos(PHI)))
 
@@ -170,7 +158,7 @@ def main(dims=20, timedelta=1):
     # Save data
     # np.save(f'../objects/{STATE}/rho_entropy_D{dims}_t{t + 1}_dt{TIMEDELTA}', entropies)
     # np.save(f'../objects/{STATE}/rho_purity_D{dims}_t{t + 1}_dt{TIMEDELTA}', purities)
-    np.save(f'../objects/{STATE}/rho_covariance_D{dims}_t{t+1}_dt{TIMEDELTA}', covariances)
+    np.save(f'../objects/{STATE}/rho_covariance_D{dims}_t{t+1}_dt{timedelta}', covariances)
     # Plot final density matrix
     rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
     plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
