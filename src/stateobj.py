@@ -272,7 +272,19 @@ class JointSystem(Qobj):
 
 class Physics:
     def __init__(self, dimension, interaction_time, interaction_strength):
-        theta = 1 * interaction_strength * interaction_time
+        self.theta = 1 * interaction_strength * interaction_time
+        self.dims = dimension
+        # Ancilla
+        self._alpha = -1
+        self._beta = -1
+        self._phi = -1
+        self._gamma_1 = 0
+        self._gamma_2 = 0
+        self._phi_1 = 0
+        self._phi_2 = 0
+        self.ancilla = self.create_ancilla()
+        # Systems
+        self.systems = dict()
         # Identity
         self.qeye = qeye(dimension)
         # Creation and Annihilation Operators
@@ -307,10 +319,10 @@ class Physics:
         ])
 
         # Bosonic Operators
-        self.C = (theta*(2*self.aad).sqrtm()).cosm()
-        self.Cp = (theta*(2*self.ada).sqrtm()).cosm()
+        self.C = (self.theta*(2*self.aad).sqrtm()).cosm()
+        self.Cp = (self.theta*(2*self.ada).sqrtm()).cosm()
         dividend = ((2*self.aad).sqrtm()).inv()
-        sine = (theta*(2*self.aad).sqrtm()).sinm()
+        sine = (self.theta*(2*self.aad).sqrtm()).sinm()
         self.S = self.ad * sine * dividend
         self.Sd = sine * dividend * self.a
         
@@ -324,23 +336,120 @@ class Physics:
     def bosonic_operators(self):
         return [self.C, self.Cp, self.S, self.Sd]
 
-    def kraus_operators_2_cavities(self, ga, gb):
+    def create_system(self, dm_type='fock', name=None, **kwargs):
+        if name is None:
+            name = f'{dm_type}_state_{len(self.systems)}'
+        match dm_type:
+            case 'coherent':
+                alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
+                state = coherent_dm(self.dims, alpha)
+            case 'thermal-enr':
+                dims = self.dims if isinstance(self.dims, list) else list([self.dims])
+                excitations = kwargs.get('excitations') if 'excitations' in kwargs else 1
+                state = enr_thermal_dm(dims, excitations, n=1)
+            case 'thermal':
+                n = kwargs.get('n') if 'n' in kwargs else 1
+                state = thermal_dm(self.dims, n)
+            case 'fock':
+                n = kwargs.get('n') if 'n' in kwargs else 0
+                state = fock_dm(self.dims, n)
+            case 'maxmix':
+                state = maximally_mixed_dm(self.dims)
+            case 'random':
+                seed = kwargs.get('seed') if 'seed' in kwargs else 21
+                state = rand_dm(self.dims)
+            case _:
+                a = kwargs.get('a') if 'a' in kwargs else complex(1, 0)
+                b = kwargs.get('b') if 'b' in kwargs else complex(0, 0)
+                state = Qobj(np.array([[a, b], [b.conjugate(), 1 - a]]))
+        self.systems[name] = state
+        return state
+
+    def create_ancilla(self,
+                       a=complex(1 / math.sqrt(2), 0),
+                       b=complex(1 / math.sqrt(2), 0),
+                       p=np.pi / 2,
+                       gamma_1=0, gamma_2=0,
+                       phi_1=0, phi_2=0,) -> Qobj:
+        coherence1, coherence2 = gamma_1 * np.exp(1j * phi_1), gamma_2 * np.exp(1j * phi_2)
+        coherence1_star, coherence2_star = np.conj(coherence1), np.conj(coherence2)
+        eta = [
+            [a ** 2, coherence1_star, coherence2_star],
+            [coherence1, b ** 2 / 2, b ** 2 / 2 * cmath.exp(1j * p)],
+            [coherence2, b ** 2 / 2 * cmath.exp(-1j * p), b ** 2 / 2],
+        ]
+        self.ancilla = Qobj(eta)
+        self._alpha = a
+        self._beta = b
+        self._phi = p
+        self._gamma_1 = gamma_1
+        self._gamma_2 = gamma_2
+        self._phi_1 = phi_1
+        self._phi_2 = phi_2
+        return Qobj(eta)
+
+    @property
+    def ga(self):
+        """Gamma Alpha"""
+        return 2 * self._alpha ** 2
+
+    @property
+    def gb(self):
+        """Gamma Beta"""
+        return self._beta ** 2 * (1 + math.cos(self._phi))
+
+    @property
+    def gg(self):
+        """Gamma Gamma"""
+        phi_1_plus = self._phi_1 + np.pi / 2
+        phi_2_plus = self._phi_2 + np.pi / 2
+        return self._gamma_1 * np.exp(1j * phi_1_plus) + self._gamma_2 * np.exp(1j * phi_2_plus)
+
+    @property
+    def delta(self):
+        """gg x gg*"""
+        cosine = self._gamma_1 * self._gamma_2 * np.cos(self._phi_1 - self._phi_2)
+        return self._gamma_1 ** 2 + self._gamma_2 ** 2 + 2 * cosine
+
+    def kraus_operators_2_cavities(self):
         cc = qutip.tensor(self.C, self.C)
         ssd = qutip.tensor(self.S, self.Sd)
-        ek_1 = np.sqrt(ga / 2) * (cc - 2 * ssd)
+        ek_1 = np.sqrt(self.ga / 2) * (cc - 2 * ssd)
 
         scp = qutip.tensor(self.S, self.Cp)
         cs = qutip.tensor(self.C, self.S)
-        ek_2 = np.sqrt(ga) * (scp + cs)
+        ek_2 = np.sqrt(self.ga) * (scp + cs)
 
         sdc = qutip.tensor(self.Sd, self.C)
         cpsd = qutip.tensor(self.Cp, self.Sd)
-        ek_3 = np.sqrt(gb) * (sdc + cpsd)
+        ek_3 = np.sqrt(self.gb) * (sdc + cpsd)
 
         cpcp = qutip.tensor(self.Cp, self.Cp)
         sds = qutip.tensor(self.Sd, self.S)
-        ek_4 = np.sqrt(gb / 2) * (cpcp - 2 * sds)
+        ek_4 = np.sqrt(self.gb / 2) * (cpcp - 2 * sds)
 
-        ek_5 = np.sqrt(1 - ga/2 - gb/2) * qutip.tensor(self.qeye, self.qeye)
+        ek_5 = np.sqrt(1 - self.ga/2 - self.gb/2) * qutip.tensor(self.qeye, self.qeye)
 
         return [ek_1, ek_2, ek_3, ek_4, ek_5]
+
+    def general_kraus_operators(self):
+        ek0 = np.sqrt(self._beta ** 2 * (1 - np.cos(self._phi)) / 2)
+        ek0 *= self.qeye
+
+        ek1 = np.sqrt(self.ga / 2 - self.delta)
+        ek1 *= self.C
+
+        ek2 = np.sqrt(self.ga - 1)
+        ek2 *= self.S
+
+        ek3 = np.sqrt(self.gb / 2 - self.delta)
+        ek3 *= self.Cp
+
+        ek4 = np.sqrt(self.gb - 1)
+        ek4 *= self.Sd
+
+        ek5 = self.S + self.gg * self.Cp
+
+        ek6 = self.Sd - np.conj(self.gg) * self.C
+
+        return [ek0, ek1, ek2, ek3, ek4, ek5, ek6]
