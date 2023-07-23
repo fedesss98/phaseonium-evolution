@@ -55,10 +55,37 @@ def covariance_invariants(covariance_matrix: np.ndarray):
     return [i1, i2, i3, i4]
 
 
+def seralian(covariance_matrix: np.ndarray):
+    """Serafini, Quantum Continuous Variables; pag. 173; eq. 7.7"""
+    i1, i2, i3, i4 = covariance_invariants(covariance_matrix)
+    return i1 + i2 + 2 * i3
+
+
+def seralian_transposed(covariance_matrix: np.ndarray):
+    """
+    Serafini, Quantum Continuous Variables; pag. 177;
+    in Proof of PPT criterion.
+    """
+    i1, i2, i3, i4 = covariance_invariants(covariance_matrix)
+    return i1 + i2 - 2 * i3
+
+
 def symplectic_eigenvalues(covariance_matrix: np.ndarray):
     """Ferraro, Olivares, Paris - 2005; pag.22"""
     i1, i2, i3, i4 = covariance_invariants(covariance_matrix)
     first_factor = i1 + i2 + 2 * i3
+    second_factor = np.sqrt(first_factor ** 2 - 4 * i4)
+    d1 = np.sqrt((first_factor + second_factor) / 2)
+    d2 = np.sqrt((first_factor - second_factor) / 2)
+    return d1, d2
+
+
+def symplectic_eigenvalues_transposed(covariance_matrix: np.ndarray):
+    """
+    Serafini, Quantum Continuous Variables; pag. 189; eq. 7.46.
+    """
+    i1, i2, i3, i4 = covariance_invariants(covariance_matrix)
+    first_factor = i1 + i2 - 2 * i3  # Transposition only changes the sign of sigma_AB (i4)
     second_factor = np.sqrt(first_factor ** 2 - 4 * i4)
     d1 = np.sqrt((first_factor + second_factor) / 2)
     d2 = np.sqrt((first_factor - second_factor) / 2)
@@ -147,3 +174,21 @@ def mutual_information(covariance_matrix):
     b = np.sqrt(invariants[1])
     return minientropy(a) + minientropy(b) - minientropy(d1) - minientropy(d2)
 
+
+def _partial_transpose(covariance_matrix):
+    """
+    Serafini, Quantum Continuos Variables, pag.188
+    """
+    return None
+
+
+def logarithmic_negativity(covariance_matrix):
+    """
+    Ferraro, Olivares, Paris - 2005; pag.30
+    -------------------------------
+    Serafini, Quantum Continuos Variables, pag.187
+    """
+    k2 = 1 / np.sqrt(2)  # Ferraro, Olivares - 2005 pag.1 - pag.14
+    d1, d2 = symplectic_eigenvalues_transposed(covariance_matrix)
+    d_minus = min(d1, d2)
+    return max(0, -np.log((2 * k2) ** 2 * d_minus))

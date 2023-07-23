@@ -64,6 +64,7 @@ def dissipator(x: Qobj | np.ndarray, system: Qobj | np.ndarray, kind='regular'):
     return sandwich - 1/2 * comm
 
 
+
 def master_equation(system, ga, gb, operators):
     c, cp, s, sd = operators
 
@@ -76,3 +77,10 @@ def master_equation(system, ga, gb, operators):
     d_cp_sd = dissipator(np.kron(cp, sd) + np.kron(sd, c), system)
     second_line = 0.5 * d_cpcp_2sds + d_cp_sd
     return ga * first_line + gb * second_line
+
+
+def _partial_transpose(covariance_matrix, subsystem=0):
+    """
+    Serafini, Quantum Continuos Variables, pag.188
+    """
+    T = np.diag([(-1) ** i for i in range(covariance_matrix.shape[0])])
