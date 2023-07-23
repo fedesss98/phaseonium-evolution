@@ -14,7 +14,7 @@ from physics import *
 from stateobj import Physics
 from observables import entropy_vn, purity, covariance
 
-TIMESTEPS = 1000
+TIMESTEPS = 5000
 TIMEDELTA = 1  # Interaction time
 OMEGA = 0.5  # Strength of Interaction
 D = 20  # Hilbert space dimension
@@ -144,8 +144,10 @@ def main(dims=20, timedelta=1):
         print(f'The system will thermalize at temperature {stable_temperature(ga, gb)}.')
     else:
         print('The system will not thermalize.')
+
     # Evolve
-    for t in trange(t, t + TIMESTEPS):
+    timesteps = TIMESTEPS / timedelta
+    for t in trange(t, t + timesteps):
         rho = meq_evolution(rho, ga, gb, operators)
         if not hilbert_is_good(rho, 'unitary'):
             print(f'Hilbert space truncation is no more valid at step {t}')
