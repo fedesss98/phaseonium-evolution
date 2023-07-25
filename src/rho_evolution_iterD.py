@@ -127,9 +127,9 @@ def main(dims=20, timedelta=1.0):
     eta, rho1, rho2 = create_systems(A, B, PHI, N1, N2, dims)
     # Create new product state or load system evolved until time t
     rho, t = load_or_create(rho1, rho2, dims, create=False)
-    plot_density_matrix(rho1, diagonal=True, title='Initial density matrix of the first cavity')
-    plot_density_matrix(rho2, diagonal=True, title='Initial density matrix of the second cavity')
-    plot_density_matrix(rho, diagonal=True, title='Initial density matrix of the composite system')
+    # plot_density_matrix(rho1, diagonal=True, title='Initial density matrix of the first cavity')
+    # plot_density_matrix(rho2, diagonal=True, title='Initial density matrix of the second cavity')
+    # plot_density_matrix(rho, diagonal=True, title='Initial density matrix of the composite system')
 
     # Create Bosonic operators for ME evolution
     operators = p.bosonic_operators
@@ -162,10 +162,11 @@ def main(dims=20, timedelta=1.0):
     # np.save(f'../objects/{STATE}/rho_entropy_D{dims}_t{t + 1}_dt{TIMEDELTA}', entropies)
     # np.save(f'../objects/{STATE}/rho_purity_D{dims}_t{t + 1}_dt{TIMEDELTA}', purities)
     np.save(f'../objects/{STATE}/rho_covariance_D{dims}_t{t+1}_dt{timedelta}', covariances)
+
     # Plot final density matrix
-    rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
-    plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
-    plot_density_matrix(rho, diagonal=True, title='Final density matrix of the composite system')
+    # rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
+    # plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
+    # plot_density_matrix(rho, diagonal=True, title='Final density matrix of the composite system')
 
 
 def iter_over_dimensions():
