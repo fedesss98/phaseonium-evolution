@@ -3,8 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from qutip import *
 
-from src.stateobj import QState, QAncilla
-from src.stateobj import Physics as p
+try:
+    from src.stateobj import QState, QAncilla
+    from src.stateobj import Physics as p
+except ModuleNotFoundError:
+    from stateobj import QState, QAncilla
+    from stateobj import Physics as p
 
 from IPython.display import Markdown, display
 

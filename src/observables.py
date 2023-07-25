@@ -1,5 +1,9 @@
 import numpy as np
-from src.physics import commutator, np_expval, np_anticommutator
+
+try:
+    from src.physics import commutator, np_expval, np_anticommutator
+except ModuleNotFoundError:
+    from physics import commutator, np_expval, np_anticommutator
 
 
 def calc_eignevalues(data: np.ndarray):

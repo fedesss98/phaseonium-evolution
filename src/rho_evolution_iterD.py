@@ -5,6 +5,7 @@ Can we use the interaction time as control parameter?
 
 TIMEDELTAS
 0.01, 0.05, 0.1, 0.5, 1, 5, 10
+!!! After 2pi the evolution should repeat itself
 """
 import cmath
 import math
@@ -14,7 +15,7 @@ from physics import *
 from stateobj import Physics
 from observables import entropy_vn, purity, covariance
 
-TIMESTEPS = 5000
+TIMESTEPS = 2000
 TIMEDELTA = 1  # Interaction time
 OMEGA = 0.5  # Strength of Interaction
 D = 20  # Hilbert space dimension
