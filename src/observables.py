@@ -40,9 +40,9 @@ def cov_matrix_element(rho, op1, op2):
 
 def covariance(rho: np.ndarray, operators):
     cov = [
-        [cov_matrix_element(rho, operators[k], operators[l])
-         for k in range(len(operators))]
-        for l in range(len(operators))
+        [cov_matrix_element(rho, operators[m], operators[n])
+         for m in range(len(operators))]
+        for n in range(len(operators))
     ]
     return np.array(cov)
 

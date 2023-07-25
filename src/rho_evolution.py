@@ -4,36 +4,42 @@ with finite interaction time TIMEDELTA.
 Can we use the interaction time as control parameter?
 
 TIMEDELTAS
-1e-01
-2e-01
-3e-01
-1
-2
-1e-02
-1e-03
+0.01, 0.05, 0.1, 0.5, 1, 5, 10
+!!! After 2pi the evolution should repeat itself
 """
 import cmath
 import math
 
-import utilities as use
-from physics import *
-from stateobj import Physics
+try:
+    import utilities as use
+    from physics import *
+    from stateobj import Physics
+    from observables import entropy_vn, purity, covariance
+except ModuleNotFoundError:
+    import src.utilities as use
+    from src.physics import *
+    from src.stateobj import Physics
+    from src.observables import entropy_vn, purity, covariance
 
-TIMESTEPS = 2000
-TIMEDELTA = 1
-OMEGA = 0.5  # Strength of Interaction
 
-D = 25
-
-# Ancilla parameters
-A = complex(1 / math.sqrt(6), 0)
-B = cmath.sqrt(1 - A ** 2)
-PHI = np.pi / 2
-# Cavities parameters
-N1 = 0
-N2 = 0
-
-p = Physics(dimension=D, interaction_strength=OMEGA, interaction_time=TIMEDELTA)
+def setup_experiment(dims, timedelta, **kwargs):
+    omega = 0.5 if 'omega' not in kwargs else kwargs['omega']
+    # Ancilla parameters
+    alpha = complex(1 / math.sqrt(6), 0) if 'alpha' not in kwargs else kwargs['alpha']
+    beta = cmath.sqrt(1 - alpha ** 2) if 'beta' not in kwargs else kwargs['beta']
+    phi = np.pi / 2 if 'phi' not in kwargs else kwargs['phi']
+    # Cavities parameters
+    state = 'thermal' if 'state' not in kwargs else kwargs['state']
+    n1 = 1 if 'n1' not in kwargs else kwargs['n1']
+    n2 = 1 if 'n2' not in kwargs else kwargs['n2']
+    experiment = Physics(dimension=dims,
+                         interaction_strength=omega, interaction_time=timedelta,
+                         alpha=alpha,
+                         beta=beta,
+                         phi=phi)
+    experiment.create_system(state, n=n1, alpha=n1, name='rho1')
+    experiment.create_system(state, n=n2, alpha=n1, name='rho2')
+    return experiment
 
 
 def file_dims(filename):
@@ -48,39 +54,19 @@ def file_timedelta(filename):
     return float(filename.split('_')[-1][2:])
 
 
-def check_file_metadata(filename):
+def check_file_metadata(filename, d, dt):
     dims = file_dims(filename)
     timedelta = file_timedelta(filename)
-    return dims == D and timedelta == TIMEDELTA
+    return dims == d and timedelta == dt
 
 
-def create_systems(alpha, beta, phi, n1, n2):
-    eta = use.create_ancilla_qobj(alpha, beta, phi)
-    rho1 = use.create_system_qobj('fock', n=n1, n_dims=D)
-    rho2 = use.create_system_qobj('fock', n=n2, n_dims=D)
-    return eta, rho1, rho2
-
-
-def load_or_create(rho1, rho2, create=False):
+def load_or_create(rho1, rho2):
     """
     Create a new product state or load it from the last saved evolution file.
     Returns the state and the last time step.
     """
-    if create:
-        return np.kron(rho1.full(), rho2.full()).real, 0
-    try:
-        files = [file.removesuffix('.npz') for file in os.listdir('../objects') if file.endswith('.npz')]
-        times = [file_time(file) for file in files if check_file_metadata(file)]
-        t = max(times) if len(times) > 0 else 0
-        zipped_evolution = np.load(f'../objects/rho_evolution_d{D}_t{t}_dt{TIMEDELTA}.npz')
-        rho = zipped_evolution[zipped_evolution.files[-1]]
-        del zipped_evolution
-        print(f'Loaded evolution until step {t}.')
-    except FileNotFoundError:
-        rho = np.kron(rho1.full(), rho2.full()).real
-        t = 0
-        print('File not found. Starting a new evolution.')
-    return rho, t
+    suffix = '.npy'
+    return np.kron(rho1.full(), rho2.full()).real, 0
 
 
 def plot_density_matrix(system, diagonal=False, title=None):
@@ -98,11 +84,6 @@ def plot_density_matrix(system, diagonal=False, title=None):
     return None
 
 
-def stable_temperature(ga, gb):
-    temperature = - 1 / math.log(ga / gb)
-    return temperature
-
-
 def ancilla_parameters(ancilla):
     alpha = cmath.sqrt(ancilla.full()[0, 0])
     beta = cmath.sqrt(2 * ancilla.full()[1, 1])
@@ -117,7 +98,10 @@ def kraus_evolvution(system, kraus_operators):
     return new_system
 
 
-def meq_evolution(system, ga, gb, operators):
+def meq_evolution(system, physic_object):
+    ga = physic_object.ga
+    gb = physic_object.gb
+    operators = physic_object.bosonic_operators
     delta_s = master_equation(system, ga, gb, operators)
     return system + delta_s
 
@@ -135,46 +119,52 @@ def hilbert_is_good(system, check):
         raise ValueError('Check must be either "unitary" or "last_element".')
 
 
-def main():
-    print(f'Starting evolution of {D}-dimensional system')
-    th = OMEGA * TIMEDELTA
-    ga = np.real(2 * A ** 2)
-    gb = np.real(B ** 2 * (1 + np.cos(PHI)))
+def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
+    print(f'Starting evolution of {dims}-dimensional system with interaction time {timedelta}.')
 
-    eta, rho1, rho2 = create_systems(A, B, PHI, N1, N2)
+    experiment = setup_experiment(dims, timedelta, **kwargs)
+    rho1 = experiment.systems['rho1']
+    rho2 = experiment.systems['rho2']
     # Create new product state or load system evolved until time t
-    rho, t = load_or_create(rho1, rho2, create=False)
-    plot_density_matrix(rho1, diagonal=True, title='Initial density matrix of the first cavity')
-    plot_density_matrix(rho2, diagonal=True, title='Initial density matrix of the second cavity')
-    plot_density_matrix(rho, diagonal=True, title='Initial density matrix of the composite system')
-
-    # Create Kraus operators
-    kraus_operators = [k.full() for k in p.kraus_operators_2_cavities(ga, gb)]
-    # Create Bosonic operators for ME evolution
-    operators = p.bosonic_operators
-
-    rho_evolution = list()
+    rho, t = load_or_create(rho1['density'], rho2['density'])
+    if show_plots:
+        plot_density_matrix(rho1['density'], diagonal=True, title='Initial density matrix of the first cavity')
+        plot_density_matrix(rho2['density'], diagonal=True, title='Initial density matrix of the second cavity')
+        plot_density_matrix(rho, diagonal=True, title='Initial density matrix of the composite system')
 
     # Check if a steady state exists
-    if ga / gb < 1:
-        print(f'The system will thermalize at temperature {stable_temperature(ga, gb)}.')
+    if experiment.ga / experiment.gb < 1:
+        print(f'The system will thermalize at temperature {experiment.stable_temperature}.')
     else:
         print('The system will not thermalize.')
+
+    # Quadrature Operators Vector
+    quadratures = [experiment.q1.full(), experiment.p1.full(),
+                   experiment.q2.full(), experiment.p2.full()]
+
+    # Create covariance evolution vector
+    covariances = [covariance(rho, quadratures)]
+
     # Evolve
-    for t in trange(t, t + TIMESTEPS):
-        rho = meq_evolution(rho, ga, gb, operators)
+    total_time_range = 2000  # Approximate time to thermalize the cavities
+    timesteps = int(total_time_range / timedelta)
+    for t in trange(t, t + timesteps):
+        rho = meq_evolution(rho, experiment)
         if not hilbert_is_good(rho, 'unitary'):
             print(f'Hilbert space truncation is no more valid at step {t}')
             break
         else:
-            rho_evolution.append(rho)
+            covariances.append(covariance(rho, quadratures))
 
     # Save data
-    np.savez(f'../objects/rho_evolution_d{D}_t{t + 1}_dt{TIMEDELTA}', *rho_evolution)
-    # Plot final density matrix
-    rho1 = Qobj(rho, dims=[[D, D], [D, D]]).ptrace(0).full()
-    plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
-    plot_density_matrix(rho, diagonal=True, title='Final density matrix of the composite system')
+    np.save(f'../objects/{rho1["type"]}/rho_covariance_D{dims}_t{t+1}_dt{timedelta}', covariances)
+
+    if show_plots:
+        # Plot final density matrix
+        # Trace out the second cavity
+        rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
+        plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
+        plot_density_matrix(rho, diagonal=True, title='Final density matrix of the composite system')
 
 
 if __name__ == '__main__':

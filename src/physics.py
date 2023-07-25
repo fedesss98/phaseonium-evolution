@@ -64,7 +64,6 @@ def dissipator(x: Qobj | np.ndarray, system: Qobj | np.ndarray, kind='regular'):
     return sandwich - 1/2 * comm
 
 
-
 def master_equation(system, ga, gb, operators):
     c, cp, s, sd = operators
 

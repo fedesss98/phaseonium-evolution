@@ -38,8 +38,7 @@ class QState(Qobj):
     @property
     def partition(self):
         return self._partition
-        
-    
+
     def get_temperature(self):
         """Find kT from Boltzmann distribution"""
         return - self._energy / np.log(self.diag()[1].real / self.diag()[0].real)
@@ -73,7 +72,7 @@ class QState(Qobj):
     
     def meq_step(self, eta, strength, timedelta):
         first_factor = eta.plusminus * (self.ap * self * self.am - .5*commutator(self.am*self.ap, self, kind='anti'))
-        second_factor =  eta.minusplus * (self.am * self * self.ap - .5*commutator(self.ap*self.am, self, kind='anti'))
+        second_factor = eta.minusplus * (self.am * self * self.ap - .5*commutator(self.ap*self.am, self, kind='anti'))
         system_new = strength**2*timedelta*(first_factor + second_factor)
         self.history.append(self)
         system_new = QState(self + timedelta*system_new, 
@@ -95,11 +94,11 @@ class QState(Qobj):
 class QAncilla(Qobj):
     
     def __init__(self,
-                 eta = None,
-                 alpha = complex(1/math.sqrt(2), 0),
-                 beta = complex(1/math.sqrt(2), 0),
-                 phi = np.pi/2,
-                 history = None):
+                 eta=None,
+                 alpha=complex(1/math.sqrt(2), 0),
+                 beta=complex(1/math.sqrt(2), 0),
+                 phi=np.pi/2,
+                 history=None):
         if eta is None:
             eta = [[alpha**2, 0                           , 0                          ],
                    [0       , beta**2/2                   , beta**2/2*cmath.exp(1j*phi)],
@@ -175,7 +174,7 @@ class JointSystem(Qobj):
                 system = QState(fock_dm(n_dims, 0))
                 systems.append(system)
             system = tensor(systems)
-        elif len(systems)==1 or isinstance(systems, QState):
+        elif len(systems) == 1 or isinstance(systems, QState):
             system = systems.pop()
             for n in range(n_states):
                 systems.append(QState(system.ptrace([n])))
@@ -204,8 +203,7 @@ class JointSystem(Qobj):
             self.am.append(tensor(am))
         self.total_ap = sum(self.ap)
         self.total_am = sum(self.am)
-        
-    
+
     def interact(self, ancilla, interactions, time, historical=True):
         """
         Unitary Evolution.
@@ -253,7 +251,7 @@ class JointSystem(Qobj):
         first_factor -= 0.5*commutator(self.total_am*self.total_ap, self, kind='anti')
         first_factor *= ancilla.plusminus
         
-        second_factor =  self.total_am * self * self.total_ap 
+        second_factor = self.total_am * self * self.total_ap
         second_factor -= 0.5*commutator(self.total_ap*self.total_am, self, kind='anti')
         second_factor *= ancilla.minusplus
         
@@ -265,24 +263,24 @@ class JointSystem(Qobj):
                            history=self.history,
                            n_states=len(self.systems))
 
-
     def __getitem__(self, index):
         return self.systems[index]
 
 
 class Physics:
-    def __init__(self, dimension, interaction_time, interaction_strength):
+    def __init__(self, dimension, interaction_time, interaction_strength,
+                 **kwargs):
         self.theta = 1 * interaction_strength * interaction_time
         self.dims = dimension
         # Ancilla
-        self._alpha = -1
-        self._beta = -1
-        self._phi = -1
-        self._gamma_1 = 0
-        self._gamma_2 = 0
-        self._phi_1 = 0
-        self._phi_2 = 0
-        self.ancilla = self.create_ancilla()
+        self._alpha = complex(1 / math.sqrt(2), 0) if 'alpha' not in kwargs else kwargs.get('alpha')
+        self._beta = complex(1 / math.sqrt(2), 0) if 'beta' not in kwargs else kwargs.get('beta')
+        self._phi = np.pi / 2 if 'phi' not in kwargs else kwargs.get('phi')
+        self._gamma_1 = 0 if 'gamma_1' not in kwargs else kwargs.get('gamma_1')
+        self._gamma_2 = 0 if 'gamma_2' not in kwargs else kwargs.get('gamma_2')
+        self._phi_1 = 0 if 'phi_1' not in kwargs else kwargs.get('phi_1')
+        self._phi_2 = 0 if 'phi_2' not in kwargs else kwargs.get('phi_2')
+        self.ancilla = self.create_ancilla(self._alpha, self._beta, self._phi)
         # Systems
         self.systems = dict()
         # Identity
@@ -362,7 +360,7 @@ class Physics:
                 a = kwargs.get('a') if 'a' in kwargs else complex(1, 0)
                 b = kwargs.get('b') if 'b' in kwargs else complex(0, 0)
                 state = Qobj(np.array([[a, b], [b.conjugate(), 1 - a]]))
-        self.systems[name] = state
+        self.systems[name] = {'density': state, 'type': dm_type}
         return state
 
     def create_ancilla(self,
@@ -391,12 +389,14 @@ class Physics:
     @property
     def ga(self):
         """Gamma Alpha"""
-        return 2 * self._alpha ** 2
+        gamma_alpha = 2 * self._alpha ** 2
+        return gamma_alpha.real
 
     @property
     def gb(self):
         """Gamma Beta"""
-        return self._beta ** 2 * (1 + math.cos(self._phi))
+        gamma_beta = self._beta ** 2 * (1 + math.cos(self._phi))
+        return gamma_beta.real
 
     @property
     def gg(self):
@@ -410,6 +410,11 @@ class Physics:
         """gg x gg*"""
         cosine = self._gamma_1 * self._gamma_2 * np.cos(self._phi_1 - self._phi_2)
         return self._gamma_1 ** 2 + self._gamma_2 ** 2 + 2 * cosine
+
+    @property
+    def stable_temperature(self):
+        temperature = - 1 / math.log(self.ga / self.gb)
+        return temperature
 
     def kraus_operators_2_cavities(self):
         cc = qutip.tensor(self.C, self.C)
