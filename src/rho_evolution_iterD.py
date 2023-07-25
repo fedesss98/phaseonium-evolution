@@ -115,7 +115,7 @@ def hilbert_is_good(system, check):
         raise ValueError('Check must be either "unitary" or "last_element".')
 
 
-def main(dims=20, timedelta=1):
+def main(dims=20, timedelta=1.0):
     p = Physics(dimension=dims, interaction_strength=OMEGA, interaction_time=timedelta)
     th = OMEGA * timedelta
     print(f'Starting evolution of {dims}-dimensional system with interaction magnitude {th}')
@@ -146,7 +146,7 @@ def main(dims=20, timedelta=1):
         print('The system will not thermalize.')
 
     # Evolve
-    timesteps = TIMESTEPS / timedelta
+    timesteps = int(TIMESTEPS / timedelta)
     for t in trange(t, t + timesteps):
         rho = meq_evolution(rho, ga, gb, operators)
         if not hilbert_is_good(rho, 'unitary'):
@@ -173,7 +173,7 @@ def iter_over_dimensions():
 
 
 def iter_over_timedeltas():
-    for timedelta in [0.01, 0.05, 0.1, 0.5, 1, 5, 10]:
+    for timedelta in [0.01, 0.05, 0.1, 0.5]:
         main(dims=20, timedelta=timedelta)
 
 
