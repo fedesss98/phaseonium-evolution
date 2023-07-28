@@ -270,7 +270,9 @@ class JointSystem(Qobj):
 class Physics:
     def __init__(self, dimension, interaction_time, interaction_strength,
                  **kwargs):
-        self.theta = 1 * interaction_strength * interaction_time
+        self.dt = interaction_time
+        self.omega = interaction_strength
+        self.theta = 1.0 * interaction_strength * interaction_time
         self.dims = dimension
         # Ancilla
         self._alpha = complex(1 / math.sqrt(2), 0) if 'alpha' not in kwargs else kwargs.get('alpha')
@@ -302,6 +304,9 @@ class Physics:
         # Number Operators
         self.ada = self.ad * self.a
         self.aad = self.ad * self.a + 1
+        # System Hamiltonian
+        self.h1 = self.omega * self.ad1 * self.a1
+        self.h2 = self.omega * self.ad2 * self.a2
         # Ancilla Operators:
         #   Sigma Plus Operator B-
         self.sigmaplus = Qobj([
@@ -332,7 +337,14 @@ class Physics:
 
     @property
     def bosonic_operators(self):
-        return [self.C, self.Cp, self.S, self.Sd]
+        return [self.C.full(), self.Cp.full(), self.S.full(), self.Sd.full()]
+
+    @property
+    def quadratures(self):
+        # Quadrature Operators Vector
+        quadratures = [self.q1.full(), self.p1.full(),
+                       self.q2.full(), self.p2.full()]
+        return quadratures
 
     def create_system(self, dm_type='fock', name=None, **kwargs):
         if name is None:
@@ -362,6 +374,10 @@ class Physics:
                 state = Qobj(np.array([[a, b], [b.conjugate(), 1 - a]]))
         self.systems[name] = {'density': state, 'type': dm_type}
         return state
+
+    @property
+    def hamiltonian(self):
+        return self.h1 + self.h2
 
     def create_ancilla(self,
                        a=complex(1 / math.sqrt(2), 0),

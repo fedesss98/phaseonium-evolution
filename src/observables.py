@@ -33,6 +33,10 @@ def purity(rho: np.ndarray):
     return np.trace(rho @ rho)
 
 
+def heat_transfer(delta_rho: np.ndarray, hamiltonian):
+    return np.trace(delta_rho @ hamiltonian).real
+
+
 def cov_matrix_element(rho, op1, op2):
     comm = np_anticommutator(op1, op2)
     return 0.5 * np_expval(rho, comm) - np_expval(rho, op1) * np_expval(rho, op2)
