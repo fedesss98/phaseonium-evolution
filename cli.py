@@ -1,4 +1,6 @@
 import click
+import numpy as np
+
 from src.rho_evolution import main
 
 
@@ -35,19 +37,18 @@ def iter_dims(timedelta, dims, kwargs):
 
 
 @cli.command()
-@click.option('--dims', type=int, default=20, help='Number of dimensions.')
-@click.option('--timedeltas', '-dt', multiple=True, default=[1.0], help='Time deltas.')
-@click.argument('kwargs', nargs=-1)
-def iter_timedeltas(dims, timedeltas, kwargs):
+@click.option('--dims', '-d', type=int, default=20, help='Number of dimensions.')
+@click.option('--alpha', '-a', type=float, default=1/np.sqrt(6), help='Ancilla excited state population')
+@click.option('--phi', '-p', type=float, default=np.pi/2, help='Ancilla ground states phase')
+@click.option('--state', '-s', type=str, default='thermal', help='Cavities state type')
+@click.option('-n1', type=int, default=1, help='Cavity 1 mean photon number')
+@click.option('-n2', type=int, default=1, help='Cavity 2 mean photon number')
+@click.option('--max-timesteps', type=int, default=0, help='Maximum number of timesteps')
+@click.argument('timedeltas', nargs=-1)
+def iter_timedeltas(dims, timedeltas, **kwargs):
     """Iterate over time deltas with the given dimensions."""
-    kwargs_dict = {}
-    if len(kwargs) > 0:
-        click.echo(kwargs)
-        for kwarg in kwargs:
-            key, value = kwarg.split('=')
-            kwargs_dict[key] = value
     for timedelta in timedeltas:
-        main(dims=dims, timedelta=timedelta, **kwargs_dict)
+        main(dims=dims, timedelta=float(timedelta), **kwargs)
 
 
 if __name__ == '__main__':
