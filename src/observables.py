@@ -113,7 +113,7 @@ def _get_symplectic_eigenvalues(cov_or_nus: np.ndarray):
 
 def symplectic_temperatures(cov_or_nus: np.ndarray):
     """
-    Ferraro, Olivares, Paris - 2005; pag.19
+    Ferraro, Olivares, Paris - 2005; pag.18
     Every Gaussian state can be obtained from a thermal state by a symplectic transformation.
     This thermal state is a product of thermal states of the single modes,
     with temperature parameters given by symplectic eigenvalues.
@@ -123,6 +123,14 @@ def symplectic_temperatures(cov_or_nus: np.ndarray):
     f = 1 / (4 * k2**2)
     betak = [np.log((d + 1 + f) / (d - f)) for d in dk]
     return 1 / betak[0], 1 / betak[1]
+
+
+def symplectic_photons(cov_or_nus: np.ndarray):
+    """Ferraro, Olivares, Paris - 2005; pag.19"""
+    d1, d2 = _get_symplectic_eigenvalues(cov_or_nus)
+    k2 = 1 / np.sqrt(2)  # Ferraro, Olivares - 2005 pag.1 - pag.14
+    f = 1 / (4 * k2 ** 2)
+    return d1 - f, d2 - f
 
 
 def minientropy(d):
