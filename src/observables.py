@@ -189,7 +189,7 @@ def gaussian_quantum_discord(covariance_matrix):
     d1, d2 = symplectic_eigenvalues(covariance_matrix)
     e_min = _determinant_minimum(*invariants)
     f = minientropy
-    return f(np.sqrt(invariants[1])) - f(d1) - f(d2) - f(np.sqrt(e_min))
+    return f(np.sqrt(invariants[1])) - f(d1) - f(d2) + f(np.sqrt(e_min))
 
 
 def mutual_information(covariance_matrix):
