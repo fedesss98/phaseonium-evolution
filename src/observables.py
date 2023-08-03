@@ -133,6 +133,15 @@ def symplectic_photons(cov_or_nus: np.ndarray):
     return d1 - f, d2 - f
 
 
+def mean_photon_numbers(cov: np.ndarray):
+    """
+    From <n> = q^2 + p^2 - 1/2
+    """
+    n1 = np.trace(cov[0:2, 0:2]) - 1/2
+    n2 = np.trace(cov[2:4, 2:4]) - 1/2
+    return n1, n2
+
+
 def minientropy(d):
     """Ferraro, Olivares, Paris - 2005; pag.22"""
     x1 = d + 1/2
