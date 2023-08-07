@@ -21,6 +21,14 @@ class Matrix:
         return np_display(self.matrix)
 
 
+def default_alpha():
+    return complex(1 / math.sqrt(1 + 2*np.e), 0)
+
+
+def default_phi():
+    return np.pi / 2
+
+
 def np_display(a: np.ndarray):
     if a.ndim == 1:
         raise ValueError("Cannot display 1D array")

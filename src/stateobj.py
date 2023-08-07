@@ -275,8 +275,8 @@ class Physics:
         self.theta = 1.0 * interaction_strength * interaction_time
         self.dims = dimension
         # Ancilla
-        self._alpha = complex(1 / math.sqrt(2), 0) if 'alpha' not in kwargs else kwargs.get('alpha')
-        self._beta = complex(1 / math.sqrt(2), 0) if 'beta' not in kwargs else kwargs.get('beta')
+        self._alpha = complex(1 / math.sqrt(1 + 2*np.e), 0) if 'alpha' not in kwargs else kwargs.get('alpha')
+        self._beta = cmath.sqrt(1 - self._alpha ** 2) if 'beta' not in kwargs else kwargs.get('beta')
         self._phi = np.pi / 2 if 'phi' not in kwargs else kwargs.get('phi')
         self._gamma_1 = 0 if 'gamma_1' not in kwargs else kwargs.get('gamma_1')
         self._gamma_2 = 0 if 'gamma_2' not in kwargs else kwargs.get('gamma_2')
@@ -429,6 +429,7 @@ class Physics:
 
     @property
     def stable_temperature(self):
+        print(f'alpha: {self._alpha}, beta: {self._beta}, phi: {self._phi}')
         temperature = - 1 / math.log(self.ga / self.gb)
         return temperature
 

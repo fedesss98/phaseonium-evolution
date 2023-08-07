@@ -6,6 +6,14 @@ Can we use the interaction time as control parameter?
 TIMEDELTAS
 0.01, 0.05, 0.1, 0.5, 1, 5, 10
 !!! After 2pi the evolution should repeat itself
+For the paper we use:
+0.05 - 20'000 iterations
+0.1 - 6'000 iterations
+1.0 - 1000 iterations
+
+In simulations, with phi=pi/2 we have:
+    KT = 1 -> alpha = 1/Sqrt[1 + 2 e]
+    KT = 2 -> alpha = 1/Sqrt[1 + 2 e^(1/2)]
 """
 import cmath
 import math
@@ -17,19 +25,21 @@ try:
     from physics import *
     from stateobj import Physics
     from observables import entropy_vn, purity, covariance, heat_transfer
+    from utilities import default_alpha, default_phi
 except ModuleNotFoundError:
     import src.utilities as use
     from src.physics import *
     from src.stateobj import Physics
     from src.observables import entropy_vn, purity, covariance, heat_transfer
+    from src.utilities import default_alpha, default_phi
 
 
 def setup_experiment(dims, timedelta, **kwargs):
     omega = kwargs.get('omega', 0.5)
     # Ancilla parameters
-    alpha = kwargs.get('alpha', complex(1 / math.sqrt(6), 0))
-    beta = cmath.sqrt(1 - alpha ** 2)
-    phi = kwargs.get('phi', np.pi / 2)
+    alpha = kwargs.get('alpha') if kwargs.get('alpha') is not None else default_alpha()
+    phi = kwargs.get('phi') if kwargs.get('phi') is not None else default_phi()
+    print(f'alpha = {alpha}, phi = {phi}')
     # Cavities parameters
     state = kwargs.get('state', 'thermal')
     n1 = kwargs.get('n1', 1)
@@ -37,7 +47,6 @@ def setup_experiment(dims, timedelta, **kwargs):
     experiment = Physics(dimension=dims,
                          interaction_strength=omega, interaction_time=timedelta,
                          alpha=alpha,
-                         beta=beta,
                          phi=phi)
     experiment.create_system(state, n=n1, alpha=n1, name='rho1')
     experiment.create_system(state, n=n2, alpha=n1, name='rho2')
