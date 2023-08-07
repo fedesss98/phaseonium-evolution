@@ -136,9 +136,10 @@ def symplectic_photons(cov_or_nus: np.ndarray):
 def mean_photon_numbers(cov: np.ndarray):
     """
     From <n> = q^2 + p^2 - 1/2
+    There is a problem with qutip coherent states, which have <n> = q^2 + p^2
     """
-    n1 = np.trace(cov[0:2, 0:2]) - 1/2
-    n2 = np.trace(cov[2:4, 2:4]) - 1/2
+    n1 = np.trace(cov[0:2, 0:2])
+    n2 = np.trace(cov[2:4, 2:4])
     return n1, n2
 
 
