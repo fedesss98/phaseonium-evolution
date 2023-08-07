@@ -67,9 +67,13 @@ def file_timedelta(filename):
 
 def check_file(filename, d, dt):
     filename = filename.removesuffix('.npy')
-    dims = file_dims(filename)
-    timedelta = file_timedelta(filename)
-    return filename.startswith('rho_last_') and dims == d and timedelta == dt
+    try:
+        dims = file_dims(filename)
+        timedelta = file_timedelta(filename)
+    except IndexError:
+        return False
+    else:
+        return filename.startswith('rho_last_') and dims == d and timedelta == dt
 
 
 def load_or_create(experiment, create=False):
