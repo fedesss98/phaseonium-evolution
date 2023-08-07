@@ -429,7 +429,6 @@ class Physics:
 
     @property
     def stable_temperature(self):
-        print(f'alpha: {self._alpha}, beta: {self._beta}, phi: {self._phi}')
         temperature = - 1 / math.log(self.ga / self.gb)
         return temperature
 

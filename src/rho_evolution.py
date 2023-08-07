@@ -39,7 +39,6 @@ def setup_experiment(dims, timedelta, **kwargs):
     # Ancilla parameters
     alpha = kwargs.get('alpha') if kwargs.get('alpha') is not None else default_alpha()
     phi = kwargs.get('phi') if kwargs.get('phi') is not None else default_phi()
-    print(f'alpha = {alpha}, phi = {phi}')
     # Cavities parameters
     state = kwargs.get('state', 'thermal')
     n1 = kwargs.get('n1', 1)
