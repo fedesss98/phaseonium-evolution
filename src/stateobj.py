@@ -352,7 +352,7 @@ class Physics:
         match dm_type:
             case 'coherent':
                 alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
-                state = coherent_dm(self.dims, alpha)
+                state = coherent_dm(self.dims, alpha, method='analytic')
             case 'thermal-enr':
                 dims = self.dims if isinstance(self.dims, list) else list([self.dims])
                 excitations = kwargs.get('excitations') if 'excitations' in kwargs else 1
