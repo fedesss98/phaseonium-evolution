@@ -35,7 +35,7 @@ except ModuleNotFoundError:
 
 
 def setup_experiment(dims, timedelta, **kwargs):
-    omega = kwargs.get('omega', 0.5)
+    omega = kwargs.get('omega', 1)
     # Ancilla parameters
     alpha = kwargs.get('alpha') if kwargs.get('alpha') is not None else default_alpha()
     phi = kwargs.get('phi') if kwargs.get('phi') is not None else default_phi()
@@ -49,6 +49,13 @@ def setup_experiment(dims, timedelta, **kwargs):
                          phi=phi)
     experiment.create_system(state, n=n1, alpha=n1, name='rho1')
     experiment.create_system(state, n=n2, alpha=n1, name='rho2')
+
+    # Check if a steady state exists
+    if experiment.ga / experiment.gb < 1:
+        print(f'The system will thermalize at temperature {experiment.stable_temperature}.')
+    else:
+        print('The system will not thermalize.')
+
     return experiment
 
 
@@ -128,6 +135,13 @@ def plot_density_matrix(system, diagonal=False, title=None):
     return None
 
 
+def plot_density_matrices(rho1, rho2, rho, t):
+    plot_density_matrix(rho1, diagonal=True, title=f'Density matrix of the first cavity at time {t}')
+    plot_density_matrix(rho2, diagonal=True, title=f'Density matrix of the second cavity at time {t}')
+    plot_density_matrix(rho, diagonal=True, title=f'Density matrix of the composite system at time {t}')
+    return None
+
+
 def ancilla_parameters(ancilla):
     alpha = cmath.sqrt(ancilla.full()[0, 0])
     beta = cmath.sqrt(2 * ancilla.full()[1, 1])
@@ -172,6 +186,14 @@ def hilbert_is_good(system, check):
         raise ValueError('Check must be either "unitary" or "last_element".')
 
 
+def save_data(dm_type, dims, timedelta, t, covariances, heat_transfers, rho):
+    # Save data
+    root_folder = get_root(dm_type)
+    np.save(root_folder + f'rho_covariance_D{dims}_t{t + 1}_dt{timedelta}', covariances)
+    np.save(root_folder + f'rho_heats_D{dims}_t{t + 1}_dt{timedelta}', heat_transfers)
+    np.save(root_folder + f'rho_last_D{dims}_t{t + 1}_dt{timedelta}', rho)
+
+
 def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     print(f'Starting evolution of {dims}-dimensional system with interaction time {timedelta}.')
 
@@ -180,15 +202,7 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     # Create new product state and observables or load them evolved until time t
     rho, covariances, heat_transfers, t = load_or_create(experiment)
     if show_plots:
-        plot_density_matrix(rho1['density'], diagonal=True, title='Initial density matrix of the first cavity')
-        plot_density_matrix(rho2['density'], diagonal=True, title='Initial density matrix of the second cavity')
-        plot_density_matrix(rho, diagonal=True, title='Initial density matrix of the composite system')
-
-    # Check if a steady state exists
-    if experiment.ga / experiment.gb < 1:
-        print(f'The system will thermalize at temperature {experiment.stable_temperature}.')
-    else:
-        print('The system will not thermalize.')
+        plot_density_matrices(rho1, rho2, rho, t)
 
     # Evolve
     total_time_range = 2000  # Approximate time to thermalize the cavities
@@ -206,18 +220,13 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
             covariances.append(covariance(rho, experiment.quadratures))
             heat_transfers.append(_heat_transfer(delta_rho, experiment))
 
-    # Save data
-    root_folder = get_root(kwargs.get('state', 'thermal'))
-    np.save(root_folder + f'rho_covariance_D{dims}_t{t+1}_dt{timedelta}', covariances)
-    np.save(root_folder + f'rho_heats_D{dims}_t{t+1}_dt{timedelta}', heat_transfers)
-    np.save(root_folder + f'rho_last_D{dims}_t{t+1}_dt{timedelta}', rho)
+    save_data(kwargs.get('state'), dims, timedelta, t, covariances, heat_transfers, rho)
 
     if show_plots:
-        # Plot final density matrix
-        # Trace out the second cavity
+        # Trace out evolved cavities
         rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
-        plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
-        plot_density_matrix(rho, diagonal=True, title='Final density matrix of the composite system')
+        rho2 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(1).full()
+        plot_density_matrices(rho1, rho2, rho, t)
 
 
 if __name__ == '__main__':
