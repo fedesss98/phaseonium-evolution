@@ -17,11 +17,11 @@ from observables import entropy_vn, purity, covariance
 
 TIMESTEPS = 2000
 TIMEDELTA = 1  # Interaction time
-OMEGA = 0.5  # Strength of Interaction
-D = 20  # Hilbert space dimension
+OMEGA = 0.1  # Strength of Interaction
+D = 17  # Hilbert space dimension
 
 # Ancilla parameters
-A = complex(1 / math.sqrt(6), 0)
+A = complex(1 / np.sqrt(1 + 2*np.e), 0)
 B = cmath.sqrt(1 - A ** 2)
 PHI = np.pi / 2
 # Cavities parameters
@@ -167,6 +167,7 @@ def main(dims=20, timedelta=1.0):
     # rho1 = Qobj(rho, dims=[[dims, dims], [dims, dims]]).ptrace(0).full()
     # plot_density_matrix(rho1, diagonal=True, title='Final density matrix of the first cavity')
     # plot_density_matrix(rho, diagonal=True, title='Final density matrix of the composite system')
+    del p
 
 
 def iter_over_dimensions():
@@ -175,8 +176,8 @@ def iter_over_dimensions():
 
 
 def iter_over_timedeltas():
-    for timedelta in [0.01, 0.05, 0.1, 0.5]:
-        main(dims=20, timedelta=timedelta)
+    for timedelta in [1.0, 0.5]:
+        main(dims=17, timedelta=timedelta)
 
 
 if __name__ == '__main__':
