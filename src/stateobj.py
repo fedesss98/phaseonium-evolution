@@ -330,10 +330,10 @@ class Physics:
         self.Sd = sine * dividend * self.a
         
         # Interaction
-        self.V = tensor(self.a, self.sigmaplus) + tensor(self.ad, self.sigmaminus)
+        self.V = self.omega * tensor(self.a, self.sigmaplus) + tensor(self.ad, self.sigmaminus)
         # Entangled System interactions
-        self.V1 = tensor(self.a1, self.sigmaplus) + tensor(self.ad1, self.sigmaminus)
-        self.V2 = tensor(self.a2, self.sigmaplus) + tensor(self.ad2, self.sigmaminus)
+        self.V1 = self.omega * tensor(self.a1, self.sigmaplus) + tensor(self.ad1, self.sigmaminus)
+        self.V2 = self.omega * tensor(self.a2, self.sigmaplus) + tensor(self.ad2, self.sigmaminus)
 
     @property
     def bosonic_operators(self):
