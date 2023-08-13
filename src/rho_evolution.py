@@ -17,6 +17,7 @@ In simulations, with phi=pi/2 we have:
 """
 import cmath
 import math
+from qutip import Qobj, tensor
 
 import numpy as np
 
@@ -37,8 +38,8 @@ except ModuleNotFoundError:
 def setup_experiment(dims, timedelta, **kwargs):
     omega = kwargs.get('omega', 1)
     # Ancilla parameters
-    alpha = kwargs.get('alpha') if kwargs.get('alpha') is not None else default_alpha()
-    phi = kwargs.get('phi') if kwargs.get('phi') is not None else default_phi()
+    alpha = kwargs['alpha'] if kwargs.get('alpha', None) is not None else default_alpha()
+    phi = kwargs['phi'] if kwargs.get('phi', None) is not None else default_phi()
     # Cavities parameters
     state = kwargs.get('state', 'thermal')
     n1 = kwargs.get('n1', 1)
@@ -156,11 +157,28 @@ def kraus_evolvution(system, kraus_operators):
     return new_system
 
 
-def meq_evolution(system, physic_object):
+def _meq_evolution(system, physic_object):
     ga = physic_object.ga
     gb = physic_object.gb
     operators = physic_object.bosonic_operators
     return master_equation(system, ga, gb, operators)
+
+
+def _partial_evolution(system, physic_object, steps_per_timestep=3):
+    partial_covariances = []
+    dt = physic_object.theta / steps_per_timestep
+    evolution_exponent = -1j * (dt * physic_object.V1 + dt * physic_object.V2)
+    evolution_operator = evolution_exponent.expm()
+    rho_d = physic_object.dims
+    sigma = tensor(
+        Qobj(system, dims=[[rho_d, rho_d], [rho_d, rho_d]]),
+        physic_object.ancilla
+    )
+    for s in range(steps_per_timestep - 1):
+        sigma = evolution_operator * sigma * evolution_operator.dag()
+        partial_rho = sigma.ptrace([0, 1])
+        partial_covariances.append(covariance(partial_rho.full(), physic_object.quadratures))
+    return partial_covariances
 
 
 def _heat_transfer(dr, experiment):
@@ -184,6 +202,22 @@ def hilbert_is_good(system, check):
         return last_diagonal_element < threshold
     else:
         raise ValueError('Check must be either "unitary" or "last_element".')
+
+
+def meq_evolution(time, experiment, rho, covariances, heat_transfers, partial):
+    for t in time:
+        if partial:
+            partial_covariances = _partial_evolution(rho, experiment, partial)
+            covariances.extend(partial_covariances)
+        delta_rho = _meq_evolution(rho, experiment)
+        rho = rho + delta_rho
+        if not hilbert_is_good(rho, 'unitary'):
+            print(f'Hilbert space truncation is no more valid at step {t}')
+            break
+        else:
+            covariances.append(covariance(rho, experiment.quadratures))
+            heat_transfers.append(_heat_transfer(delta_rho, experiment))
+    return rho, covariances, heat_transfers
 
 
 def save_data(dm_type, dims, timedelta, t, covariances, heat_transfers, rho):
@@ -210,17 +244,14 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     max_timesteps = kwargs.get('max_timesteps', 0)
     if kwargs.get('max_timesteps', 0) == 0:
         max_timesteps = timesteps
-    for t in trange(t, t + max_timesteps):
-        delta_rho = meq_evolution(rho, experiment)
-        rho = rho + delta_rho
-        if not hilbert_is_good(rho, 'unitary'):
-            print(f'Hilbert space truncation is no more valid at step {t}')
-            break
-        else:
-            covariances.append(covariance(rho, experiment.quadratures))
-            heat_transfers.append(_heat_transfer(delta_rho, experiment))
+    time = trange(t, t + max_timesteps)
+    # Evolve density and save observables
+    rho, covariances, heat_transfers = meq_evolution(
+        time, experiment, rho, covariances, heat_transfers,
+        kwargs.get('partial', 0)
+    )
 
-    save_data(kwargs.get('state'), dims, timedelta, t, covariances, heat_transfers, rho)
+    save_data(kwargs.get('state', 'thermal'), dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho)
 
     if show_plots:
         # Trace out evolved cavities
@@ -230,4 +261,9 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
 
 
 if __name__ == '__main__':
-    main()
+    d = 17
+    dt = 1.0
+    plots = False
+    partial = 0
+    alpha = complex(1 / np.sqrt(1 + 2*np.e), 0)
+    main(d, dt, plots, partial=partial, max_timesteps=500, alpha=alpha)
