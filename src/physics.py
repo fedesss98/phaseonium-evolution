@@ -64,6 +64,19 @@ def dissipator(x: Qobj | np.ndarray, system: Qobj | np.ndarray, kind='regular'):
     return sandwich - 1/2 * comm
 
 
+def bosonic_operators(theta, a, ad):
+    # Number Operators
+    ada = ad * a
+    aad = ad * a + 1
+    c = (theta * (2 * aad).sqrtm()).cosm()
+    cp = (theta * (2 * ada).sqrtm()).cosm()
+    dividend = ((2 * aad).sqrtm()).inv()
+    sine = (theta * (2 * aad).sqrtm()).sinm()
+    s = ad * sine * dividend
+    sd = sine * dividend * a
+    return c, cp, s, sd
+
+
 def master_equation(system, ga, gb, operators):
     c, cp, s, sd = operators
 
@@ -83,3 +96,4 @@ def _partial_transpose(covariance_matrix, subsystem=0):
     Serafini, Quantum Continuos Variables, pag.188
     """
     T = np.diag([(-1) ** i for i in range(covariance_matrix.shape[0])])
+    return T
