@@ -1,6 +1,7 @@
 import cmath, math
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from qutip import *
 
 try:
@@ -291,6 +292,13 @@ def is_thermal(rho):
         return True
     else:
         return False
+
+
+def get_last_id(parent_folder):
+    """ Search the log file to get the last log ID """
+    logs = pd.read_csv(f'{parent_folder}/../saved/logs.csv')
+    last_id = logs['Id'].iloc[-1]
+    return last_id
     
     
 if __name__ == "__main__":

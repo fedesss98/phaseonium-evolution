@@ -81,7 +81,7 @@ def file_timedelta(filename):
     return float(filename.split('_')[-1][2:])
 
 
-def check_file(filename, d, dt):
+def check_file(filename, d, dt, log_id='000'):
     filename = filename.removesuffix('.npy')
     try:
         dims = file_dims(filename)
@@ -89,10 +89,13 @@ def check_file(filename, d, dt):
     except IndexError:
         return False
     else:
-        return filename.startswith('rho_last_') and dims == d and timedelta == dt
+        if log_id != '000':
+            return filename.startswith(f'{log_id}_rho_last_') and dims == d and timedelta == dt
+        else:
+            return filename.startswith('rho_last_') and dims == d and timedelta == dt
 
 
-def load_or_create(experiment, create=False):
+def load_or_create(experiment, log_id, create=False):
     """
     Create a new product state or load it from the last saved evolution file.
     Returns the state and the last time step.
@@ -104,14 +107,15 @@ def load_or_create(experiment, create=False):
     dims = experiment.dims
     dt = experiment.dt
     root_folder = get_root(dm_type)
-    files = [f.removesuffix(suffix) for f in os.listdir(root_folder) if check_file(f, dims, dt)]
+    files = [f.removesuffix(suffix) for f in os.listdir(root_folder) if check_file(f, dims, dt, log_id)]
     times = [file_time(f) for f in files]
     if files and not create:
         # There are files to load
         last_t = max(times)
-        rho = np.load(root_folder + f'rho_last_D{dims}_t{last_t}_dt{dt}' + suffix)
-        covariances = np.load(root_folder + f'rho_covariance_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
-        heats = np.load(root_folder + f'rho_heats_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
+        log_id = log_id + '_' if log_id != '000' else ''
+        rho = np.load(root_folder + log_id + f'rho_last_D{dims}_t{last_t}_dt{dt}' + suffix)
+        covariances = np.load(root_folder + log_id + f'rho_covariance_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
+        heats = np.load(root_folder + log_id + f'rho_heats_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
         print(f'Saved files exists until time {last_t}')
         return rho, covariances, heats, last_t
     else:
@@ -220,21 +224,25 @@ def meq_evolution(time, experiment, rho, covariances, heat_transfers, partial):
     return rho, covariances, heat_transfers
 
 
-def save_data(dm_type, dims, timedelta, t, covariances, heat_transfers, rho):
-    # Save data
+def save_data(dims, timedelta, t, covariances, heat_transfers, rho, **kwargs):
+    dm_type = kwargs.get('state', 'thermal')
     root_folder = get_root(dm_type)
-    np.save(root_folder + f'rho_covariance_D{dims}_t{t + 1}_dt{timedelta}', covariances)
-    np.save(root_folder + f'rho_heats_D{dims}_t{t + 1}_dt{timedelta}', heat_transfers)
-    np.save(root_folder + f'rho_last_D{dims}_t{t + 1}_dt{timedelta}', rho)
+    log_id = kwargs.get('id', '000')
+    if log_id == '000':
+        log_id = use.get_last_id(root_folder)
+    # Save data
+    np.save(root_folder + f'{log_id}_rho_covariance_D{dims}_t{t}_dt{timedelta}', covariances)
+    np.save(root_folder + f'{log_id}_rho_heats_D{dims}_t{t}_dt{timedelta}', heat_transfers)
+    np.save(root_folder + f'{log_id}_rho_last_D{dims}_t{t}_dt{timedelta}', rho)
 
 
 def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     print(f'Starting evolution of {dims}-dimensional system with interaction time {timedelta}.')
-
+    log_id = kwargs.get('id', '000')
     experiment = setup_experiment(dims, timedelta, **kwargs)
     rho1, rho2 = experiment.systems['rho1'], experiment.systems['rho2']
     # Create new product state and observables or load them evolved until time t
-    rho, covariances, heat_transfers, t = load_or_create(experiment)
+    rho, covariances, heat_transfers, t = load_or_create(experiment, log_id)
     if show_plots:
         plot_density_matrices(rho1, rho2, rho, t)
 
@@ -251,7 +259,7 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
         kwargs.get('partial', 0)
     )
 
-    save_data(kwargs.get('state', 'thermal'), dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho)
+    save_data(dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho, **kwargs)
 
     if show_plots:
         # Trace out evolved cavities
