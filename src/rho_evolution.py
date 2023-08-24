@@ -161,6 +161,18 @@ def kraus_evolvution(system, kraus_operators):
     return new_system
 
 
+def _unitary_evolution(system, physic_object: Physics):
+    rho_d = physic_object.dims
+    # Create composite system-ancilla state
+    sigma = tensor(
+        Qobj(system, dims=[[rho_d, rho_d], [rho_d, rho_d]]),
+        physic_object.ancilla
+    )
+    dt = physic_object.dt
+    new_rho = unitary_evolution(sigma, dt, physic_object.V1 + physic_object.V2)
+    return new_rho.full()
+
+
 def _meq_evolution(system, physic_object):
     ga = physic_object.ga
     gb = physic_object.gb
@@ -208,13 +220,16 @@ def hilbert_is_good(system, check):
         raise ValueError('Check must be either "unitary" or "last_element".')
 
 
-def meq_evolution(time, experiment, rho, covariances, heat_transfers, partial):
+def meq_evolution(time, experiment, rho, covariances, heat_transfers, partial, exact_evolution=False):
     for t in time:
         if partial:
             partial_covariances = _partial_evolution(rho, experiment, partial)
             covariances.extend(partial_covariances)
-        delta_rho = _meq_evolution(rho, experiment)
-        rho = rho + delta_rho
+        if exact_evolution:
+            rho = _unitary_evolution(rho, experiment)
+        else:
+            delta_rho = _meq_evolution(rho, experiment)
+            rho = rho + delta_rho
         if not hilbert_is_good(rho, 'unitary'):
             print(f'Hilbert space truncation is no more valid at step {t}')
             break
