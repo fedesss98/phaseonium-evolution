@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from qutip import *
+from scipy.stats import maxwell
 
 try:
     from src.stateobj import QState, QAncilla
@@ -299,7 +300,21 @@ def get_last_id(parent_folder):
     logs = pd.read_csv(f'{parent_folder}/../saved/logs.csv')
     last_id = logs['Id'].iloc[-1]
     return last_id
+
+
+def maxwell_extraction(mode):
+    """
+    Generate a stochastic value from a Maxwell distribution with mode 'mode'.
+    :param mode: mode of the Maxwell distribution
+    :return: stochastic value from the Maxwell distribution
+    """
+    a = mode / np.sqrt(2)
+    return maxwell.rvs(scale=a)
     
     
 if __name__ == "__main__":
-    print_hello()
+    modes = [0.1, 1, 10]
+    for mode in modes:
+        maxwell_distribution = np.array([maxwell_extraction(mode) for _ in range(10000)])
+        plt.hist(maxwell_distribution, label=f'mode = {mode}', bins=1000)
+    plt.show()
