@@ -22,6 +22,7 @@ def cli():
 @click.option('--max-timesteps', type=int, default=0, help='Maximum number of timesteps')
 @click.option('--partial', type=int, default=0, help='Save partial evolution')
 @click.option('-id', type=str, default='000', help='Log ID for the simulation')
+@click.option('--exact/--not-exact', default=False, help='Log ID for the simulation')
 def simulate(dims, timedelta, **kwargs):
     """Run the main function with the given dimensions and time delta."""
     rho_evolution(dims=dims, timedelta=timedelta, **kwargs)
