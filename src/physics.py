@@ -97,3 +97,14 @@ def _partial_transpose(covariance_matrix, subsystem=0):
     """
     T = np.diag([(-1) ** i for i in range(covariance_matrix.shape[0])])
     return T
+
+
+def unitary_evolution(system: Qobj, interaction_time, interaction_H: Qobj):
+    evolution_exponent = -1j * interaction_time * interaction_H
+    evolution_operator = evolution_exponent.expm()
+
+    # Evolve composite state
+    new_system = evolution_operator * system * evolution_operator.dag()
+    new_rho = new_system.ptrace([0, 1])
+    return new_rho
+
