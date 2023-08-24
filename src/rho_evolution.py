@@ -271,7 +271,7 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     # Evolve density and save observables
     rho, covariances, heat_transfers = meq_evolution(
         time, experiment, rho, covariances, heat_transfers,
-        kwargs.get('partial', 0)
+        kwargs.get('partial', 0), kwargs.get('exact', False)
     )
 
     save_data(dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho, **kwargs)
