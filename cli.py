@@ -1,5 +1,4 @@
 import click
-import numpy as np
 
 from src.rho_evolution import main as rho_evolution
 from src.stochastic_evolution import main as stochastic_evolution
@@ -42,25 +41,8 @@ def simulate(dims, timedelta, **kwargs):
 @click.option('-id', type=str, default='000', help='Log ID for the simulation')
 @click.option('--exact/--not-exact', default=False, help='Log ID for the simulation')
 def stochastic_simulate(dims, timedelta, **kwargs):
-    """Run the main function with the given dimensions and time delta."""
+    """Run the main function with the given dimensions and stochastic time deltas."""
     stochastic_evolution(dims=dims, timedelta=timedelta, **kwargs)
-
-
-@cli.command()
-@click.option('--dims', '-d', type=int, default=20, help='Number of dimensions.')
-@click.option('--timedelta', '-dt', type=float, default=0.1, help='Interaction time.')
-@click.option('--omega', type=float, default=1.0, help='Interaction strength.')
-@click.option('--alpha', '-a', type=float, help='Ancilla excited state population')
-@click.option('--phi', '-p', type=float, help='Ancilla ground states phase')
-@click.option('--state', '-s', type=str, default='thermal', help='Cavities state type')
-@click.option('-n1', type=float, default=1, help='Cavity 1 mean photon number')
-@click.option('-n2', type=float, default=1, help='Cavity 2 mean photon number')
-@click.option('--max-timesteps', type=int, default=0, help='Maximum number of timesteps')
-@click.option('--partial', type=int, default=0, help='Save partial evolution')
-@click.option('-id', type=str, default='000', help='Log ID for the simulation')
-def simulate(dims, timedelta, **kwargs):
-    """Run the main function with the given dimensions and time delta."""
-    rho_evolution(dims=dims, timedelta=timedelta, **kwargs)
 
 
 @cli.command()
