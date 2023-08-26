@@ -226,7 +226,9 @@ def meq_evolution(time, experiment, rho, covariances, heat_transfers, partial, e
             partial_covariances = _partial_evolution(rho, experiment, partial)
             covariances.extend(partial_covariances)
         if exact_evolution:
-            rho = _unitary_evolution(rho, experiment)
+            old_rho = rho
+            rho = _unitary_evolution(old_rho, experiment)
+            delta_rho = rho - old_rho
         else:
             delta_rho = _meq_evolution(rho, experiment)
             rho = rho + delta_rho
