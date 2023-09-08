@@ -53,18 +53,18 @@ def np_display(a: np.ndarray):
         s = " & " if n > 0 else ""
         if type(d) == str:
             return s + d
+        if abs(np.imag(d)) < settings.atol:
+            return s + _format_float(np.real(d))
+        elif abs(np.real(d)) < settings.atol:
+            return s + _format_float(np.imag(d)) + "j"
         else:
-            if abs(np.imag(d)) < settings.atol:
-                return s + _format_float(np.real(d))
-            elif abs(np.real(d)) < settings.atol:
-                return s + _format_float(np.imag(d)) + "j"
-            else:
-                s_re = _format_float(np.real(d))
-                s_im = _format_float(np.imag(d))
-                if np.imag(d) > 0.0:
-                    return s + "(" + s_re + "+" + s_im + "j)"
-                else:
-                    return s + "(" + s_re + s_im + "j)"
+            s_re = _format_float(np.real(d))
+            s_im = _format_float(np.imag(d))
+            return (
+                f"{s}(" + s_re + "+" + s_im + "j)"
+                if np.imag(d) > 0.0
+                else f"{s}(" + s_re + s_im + "j)"
+            )
 
     if M > 10 and N > 10:
         # truncated matrix output
@@ -137,9 +137,13 @@ def check_rho_at_time(time, rho_in_time):
     partition = 1 / rho.diag()[0].real
     energy_exp = rho.diag()[1].real * partition
     temperature = - 1 / np.log(energy_exp)
-    display(Markdown(
-        f"### Density Matrix at time ${time}$" if time >= 0 else f"### Last Density Matrix"
-    ))
+    display(
+        Markdown(
+            f"### Density Matrix at time ${time}$"
+            if time >= 0
+            else "### Last Density Matrix"
+        )
+    )
     display(rho)
     print(f'Partition Function = {partition:>}\n'
           f'Coefficients Ratio = {energy_exp:>}\n'
@@ -177,27 +181,27 @@ def evolve_ancilla_qobj(rho_st,
 def create_system_qobj(dm_type='fock', n_dims=4, **kwargs):
     match dm_type:
         case 'coherent':
-            alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
+            alpha = kwargs.get('alpha', 1)
             state = coherent_dm(n_dims, alpha)
         case 'thermal-enr':
-            dims = n_dims if isinstance(n_dims, list) else list([n_dims]) 
-            excitations = kwargs.get('excitations') if 'excitations' in kwargs else 1
-            state = enr_thermal_dm(dims,excitations,n=1)
+            dims = n_dims if isinstance(n_dims, list) else [n_dims]
+            excitations = kwargs.get('excitations', 1)
+            state = enr_thermal_dm(dims, excitations, n=1)
         case 'thermal':
-            n = kwargs.get('n') if 'n' in kwargs else 1
+            n = kwargs.get('n', 1)
             state = thermal_dm(n_dims, n)
         case 'fock':
-            n = kwargs.get('n') if 'n' in kwargs else 0
+            n = kwargs.get('n', 0)
             state = fock_dm(n_dims, n)
         case 'maxmix':
             state = maximally_mixed_dm(n_dims)
         case 'random':
-            seed = kwargs.get('seed') if 'seed' in kwargs else 21
+            seed = kwargs.get('seed', 21)
             state = rand_dm(n_dims)
         case 'generic':
-            a = kwargs.get('a') if 'a' in kwargs else complex(1, 0)
-            b = kwargs.get('b') if 'b' in kwargs else complex(0, 0)
-            state = Qobj(np.array([[a, b], [b.conjugate(), 1-a]]))
+            a = kwargs.get('a', complex(1, 0))
+            b = kwargs.get('b', complex(0, 0))
+            state = Qobj(np.array([[a, b], [b.conjugate(), 1 - a]]))
     return state
     
 
@@ -210,34 +214,33 @@ def create_ancilla(alpha = complex(1/math.sqrt(2), 0),
 def create_system(dm_type='fock', n_dims=4, **kwargs):
     match dm_type:
         case 'coherent':
-            alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
+            alpha = kwargs.get('alpha', 1)
             state = coherent_dm(n_dims, alpha)
         case 'thermal-enr':
-            dims = n_dims if isinstance(n_dims, list) else list([n_dims]) 
-            excitations = kwargs.get('excitations') if 'excitations' in kwargs else 1
-            state = enr_thermal_dm(dims,excitations,n=1)
+            dims = n_dims if isinstance(n_dims, list) else [n_dims]
+            excitations = kwargs.get('excitations', 1)
+            state = enr_thermal_dm(dims, excitations, n=1)
         case 'thermal':
-            n = kwargs.get('n') if 'n' in kwargs else 1
+            n = kwargs.get('n', 1)
             state = thermal_dm(n_dims, n)
         case 'fock':
-            n = kwargs.get('n') if 'n' in kwargs else 0
+            n = kwargs.get('n', 0)
             state = fock_dm(n_dims, n)
         case 'maxmix':
             state = maximally_mixed_dm(n_dims)
         case 'random':
-            seed = kwargs.get('seed') if 'seed' in kwargs else 21
+            seed = kwargs.get('seed', 21)
             state = rand_dm(n_dims)
         case 'generic':
-            a = kwargs.get('a') if 'a' in kwargs else complex(1, 0)
-            b = kwargs.get('b') if 'b' in kwargs else complex(0, 0)
-            state = Qobj(np.array([[a, b], [b.conjugate(), 1-a]]))
+            a = kwargs.get('a', complex(1, 0))
+            b = kwargs.get('b', complex(0, 0))
+            state = Qobj(np.array([[a, b], [b.conjugate(), 1 - a]]))
     return QState(state)
 
 
 def evolve(state, V, timedelta):
     U = (-1j*V*timedelta).expm()
-    total_evolution = U * state * U.dag()
-    return total_evolution
+    return U * state * U.dag()
 
 
 def cascade_evolution(eta, joint_system, Vs, timedelta=1e-02):
@@ -289,17 +292,15 @@ def is_thermal(rho):
     the diagonal elements are sorted from bigger to smaller"""
     in_diag = rho.diag()
     out_of_diag = rho - np.diag(in_diag)
-    if not np.count_nonzero(out_of_diag) and np.all(np.diff(in_diag) <= 0):
-        return True
-    else:
-        return False
+    return bool(
+        not np.count_nonzero(out_of_diag) and np.all(np.diff(in_diag) <= 0)
+    )
 
 
 def get_last_id(parent_folder):
     """ Search the log file to get the last log ID """
     logs = pd.read_csv(f'{parent_folder}/../saved/logs.csv')
-    last_id = logs['Id'].iloc[-1]
-    return last_id
+    return logs['Id'].iloc[-1]
 
 
 def maxwell_extraction(mode):

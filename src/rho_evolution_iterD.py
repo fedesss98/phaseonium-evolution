@@ -68,20 +68,17 @@ def plot_density_matrix(system, diagonal=False, title=None):
     if diagonal:
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.plot(np.diag(system))
-        ax.set_title(title)
-        plt.show()
     else:
         system = np.real(system)
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.matshow(system)
-        ax.set_title(title)
-        plt.show()
+    ax.set_title(title)
+    plt.show()
     return None
 
 
 def stable_temperature(ga, gb):
-    temperature = - 1 / math.log(ga / gb)
-    return temperature
+    return - 1 / math.log(ga / gb)
 
 
 def ancilla_parameters(ancilla):
@@ -92,10 +89,7 @@ def ancilla_parameters(ancilla):
 
 
 def kraus_evolvution(system, kraus_operators):
-    new_system = 0
-    for k in kraus_operators:
-        new_system += k @ system @ dag(k)
-    return new_system
+    return sum(k @ system @ dag(k) for k in kraus_operators)
 
 
 def meq_evolution(system, ga, gb, operators):

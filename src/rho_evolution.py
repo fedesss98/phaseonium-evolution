@@ -112,7 +112,7 @@ def load_or_create(experiment, log_id, create=False):
     if files and not create:
         # There are files to load
         last_t = max(times)
-        log_id = log_id + '_' if log_id != '000' else ''
+        log_id = f'{log_id}_' if log_id != '000' else ''
         rho = np.load(root_folder + log_id + f'rho_last_D{dims}_t{last_t}_dt{dt}' + suffix)
         covariances = np.load(root_folder + log_id + f'rho_covariance_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
         heats = np.load(root_folder + log_id + f'rho_heats_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
@@ -129,14 +129,12 @@ def plot_density_matrix(system, diagonal=False, title=None):
     if diagonal:
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.plot(np.diag(system))
-        ax.set_title(title)
-        plt.show()
     else:
         system = np.real(system)
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.matshow(system)
-        ax.set_title(title)
-        plt.show()
+    ax.set_title(title)
+    plt.show()
     return None
 
 
@@ -155,10 +153,7 @@ def ancilla_parameters(ancilla):
 
 
 def kraus_evolvution(system, kraus_operators):
-    new_system = 0
-    for k in kraus_operators:
-        new_system += k @ system @ dag(k)
-    return new_system
+    return sum(k @ system @ dag(k) for k in kraus_operators)
 
 
 def _unitary_evolution(system, physic_object: Physics):
@@ -190,7 +185,7 @@ def _partial_evolution(system, physic_object, steps_per_timestep=3):
         Qobj(system, dims=[[rho_d, rho_d], [rho_d, rho_d]]),
         physic_object.ancilla
     )
-    for s in range(steps_per_timestep - 1):
+    for _ in range(steps_per_timestep - 1):
         sigma = evolution_operator * sigma * evolution_operator.dag()
         partial_rho = sigma.ptrace([0, 1])
         partial_covariances.append(covariance(partial_rho.full(), physic_object.quadratures))
@@ -248,9 +243,15 @@ def save_data(dims, timedelta, t, covariances, heat_transfers, rho, **kwargs):
     if log_id == '000':
         log_id = use.get_last_id(root_folder)
     # Save data
-    np.save(root_folder + f'{log_id}_rho_covariance_D{dims}_t{t}_dt{timedelta}', covariances)
-    np.save(root_folder + f'{log_id}_rho_heats_D{dims}_t{t}_dt{timedelta}', heat_transfers)
-    np.save(root_folder + f'{log_id}_rho_last_D{dims}_t{t}_dt{timedelta}', rho)
+    np.save(
+        f'{root_folder}{log_id}_rho_covariance_D{dims}_t{t}_dt{timedelta}',
+        covariances,
+    )
+    np.save(
+        f'{root_folder}{log_id}_rho_heats_D{dims}_t{t}_dt{timedelta}',
+        heat_transfers,
+    )
+    np.save(f'{root_folder}{log_id}_rho_last_D{dims}_t{t}_dt{timedelta}', rho)
 
 
 def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
@@ -263,11 +264,9 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     if show_plots:
         plot_density_matrices(rho1, rho2, rho, t)
 
-    # Evolve
-    total_time_range = 2000  # Approximate time to thermalize the cavities
-    timesteps = int(total_time_range / timedelta)
     max_timesteps = kwargs.get('max_timesteps', 0)
     if kwargs.get('max_timesteps', 0) == 0:
+        timesteps = int(2000 / timedelta)
         max_timesteps = timesteps
     time = trange(t, t + max_timesteps)
     # Evolve density and save observables

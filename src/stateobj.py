@@ -20,10 +20,7 @@ class QState(Qobj):
         self._energy = energy
         self.n_subsys = n_subsys
         self._partition = 1/self.diag()[0] if self.diag()[0] != 0 else None
-        if history is None:
-            self.history = []
-        else:
-            self.history = history
+        self.history = [] if history is None else history
         
     @property
     def energy(self):
@@ -53,10 +50,9 @@ class QState(Qobj):
         U = (-1j*interaction*time).expm()
         total_evolution = U * tensor(self, ancilla) * U.dag()
         self.history.append(self)
-        system_evolution = QState(total_evolution.ptrace(0), 
-                                  energy=self.energy,
-                                  history=self.history)
-        return system_evolution
+        return QState(
+            total_evolution.ptrace(0), energy=self.energy, history=self.history
+        )
     
     def interact_multiple(self, ancilla, interactions, time):
         unitaries = [(-1j*interaction*time).expm() for interaction in interactions]
@@ -64,11 +60,11 @@ class QState(Qobj):
         total_system = tensor(self, ancilla)
         for U in unitaries:
             total_system = U * total_system * U.dag()
-        # Trace off Ancillas
-        system_evolution = QState(total_system.ptrace(range(self.n_subsys)), 
-                                  history=self.history,
-                                  n_subsys=self.n_subsys)
-        return system_evolution
+        return QState(
+            total_system.ptrace(range(self.n_subsys)),
+            history=self.history,
+            n_subsys=self.n_subsys,
+        )
     
     def meq_step(self, eta, strength, timedelta):
         first_factor = eta.plusminus * (self.ap * self * self.am - .5*commutator(self.am*self.ap, self, kind='anti'))
@@ -85,10 +81,9 @@ class QState(Qobj):
         the diagonal elements are sorted from bigger to smaller"""
         in_diag = self.diag()
         out_of_diag = self - np.diag(in_diag)
-        if not np.count_nonzero(out_of_diag) and np.all(np.diff(in_diag) <= 0):
-            return True
-        else:
-            return False
+        return bool(
+            not np.count_nonzero(out_of_diag) and np.all(np.diff(in_diag) <= 0)
+        )
 
 
 class QAncilla(Qobj):
@@ -103,19 +98,15 @@ class QAncilla(Qobj):
             eta = [[alpha**2, 0                           , 0                          ],
                    [0       , beta**2/2                   , beta**2/2*cmath.exp(1j*phi)],
                    [0       , beta**2/2*cmath.exp(-1j*phi), beta**2/2                  ],]
-            self._alpha = alpha
-            self._beta = beta
-            self._phi = phi
         else:
             alpha = cmath.sqrt(eta.full()[0, 0])
             beta = cmath.sqrt(2*eta.full()[1, 1])
             phi = math.acos((eta.full()[1, 2]/eta.full()[1, 1]).real)
-            self._alpha = alpha
-            self._beta = beta
-            self._phi = phi
-        
+        self._alpha = alpha
+        self._beta = beta
+        self._phi = phi
         super().__init__(inpt=eta)
-    
+
         self._energy = 1
         # Ancilla Operators:
         #   Sigma Plus Operator B-
@@ -139,10 +130,7 @@ class QAncilla(Qobj):
         self.commutator = expect(commutator(self.sigmaminus, self.sigmaplus), self)
         # Ancilla factor (predicts stable temperature)
         self.factor = self.plusminus/self.minusplus
-        if history is None:
-            self.history = []
-        else:
-            self.history = history
+        self.history = [] if history is None else history
 
     @property
     def alpha(self):
@@ -170,7 +158,7 @@ class JointSystem(Qobj):
         # Generate systems if not provided
         if systems is None:
             systems = []
-            for i in range(n_states):
+            for _ in range(n_states):
                 system = QState(fock_dm(n_dims, 0))
                 systems.append(system)
             system = tensor(systems)
@@ -186,11 +174,8 @@ class JointSystem(Qobj):
         self.systems = systems
         # Create Qobj with tensor product of the systems
         super().__init__(system)
-        
-        if history is not None:
-            self.history = history
-        else:
-            self.history = []
+
+        self.history = history if history is not None else []
         # Operators
         self.ap = []
         self.am = []
@@ -284,7 +269,7 @@ class Physics:
         self._phi_2 = 0 if 'phi_2' not in kwargs else kwargs.get('phi_2')
         self.ancilla = self.create_ancilla(self._alpha, self._beta, self._phi)
         # Systems
-        self.systems = dict()
+        self.systems = {}
         # Identity
         self.qeye = qeye(dimension)
         # Creation and Annihilation Operators
@@ -292,7 +277,7 @@ class Physics:
         self.a = destroy(dimension)
         self.q = position(dimension)
         self.p = momentum(dimension)
-        
+
         self.a1 = tensor(self.a, self.qeye)
         self.ad1 = tensor(self.ad, self.qeye)
         self.a2 = tensor(self.qeye, self.a)
@@ -328,7 +313,7 @@ class Physics:
         sine = (self.theta*(2*self.aad).sqrtm()).sinm()
         self.S = self.ad * sine * dividend
         self.Sd = sine * dividend * self.a
-        
+
         # Interaction
         self.V = self.omega * tensor(self.a, self.sigmaplus) + tensor(self.ad, self.sigmaminus)
         # Entangled System interactions
@@ -341,36 +326,33 @@ class Physics:
 
     @property
     def quadratures(self):
-        # Quadrature Operators Vector
-        quadratures = [self.q1.full(), self.p1.full(),
-                       self.q2.full(), self.p2.full()]
-        return quadratures
+        return [self.q1.full(), self.p1.full(), self.q2.full(), self.p2.full()]
 
     def create_system(self, dm_type='fock', name=None, **kwargs):
         if name is None:
             name = f'{dm_type}_state_{len(self.systems)}'
         match dm_type:
             case 'coherent':
-                alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
+                alpha = kwargs.get('alpha', 1)
                 state = coherent_dm(self.dims, alpha, method='analytic')
             case 'thermal-enr':
-                dims = self.dims if isinstance(self.dims, list) else list([self.dims])
-                excitations = kwargs.get('excitations') if 'excitations' in kwargs else 1
+                dims = self.dims if isinstance(self.dims, list) else [self.dims]
+                excitations = kwargs.get('excitations', 1)
                 state = enr_thermal_dm(dims, excitations, n=1)
             case 'thermal':
-                n = kwargs.get('n') if 'n' in kwargs else 1
+                n = kwargs.get('n', 1)
                 state = thermal_dm(self.dims, n)
             case 'fock':
-                n = kwargs.get('n') if 'n' in kwargs else 0
+                n = kwargs.get('n', 0)
                 state = fock_dm(self.dims, n)
             case 'maxmix':
                 state = maximally_mixed_dm(self.dims)
             case 'random':
-                seed = kwargs.get('seed') if 'seed' in kwargs else 21
+                seed = kwargs.get('seed', 21)
                 state = rand_dm(self.dims)
             case _:
-                a = kwargs.get('a') if 'a' in kwargs else complex(1, 0)
-                b = kwargs.get('b') if 'b' in kwargs else complex(0, 0)
+                a = kwargs.get('a', complex(1, 0))
+                b = kwargs.get('b', complex(0, 0))
                 state = Qobj(np.array([[a, b], [b.conjugate(), 1 - a]]))
         self.systems[name] = {'density': state, 'type': dm_type}
         return state
@@ -429,8 +411,7 @@ class Physics:
 
     @property
     def stable_temperature(self):
-        temperature = - 1 / math.log(self.ga / self.gb)
-        return temperature
+        return - 1 / math.log(self.ga / self.gb)
 
     def kraus_operators_2_cavities(self):
         cc = qutip.tensor(self.C, self.C)
