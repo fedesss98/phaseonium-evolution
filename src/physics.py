@@ -95,8 +95,7 @@ def _partial_transpose(covariance_matrix, subsystem=0):
     """
     Serafini, Quantum Continuos Variables, pag.188
     """
-    T = np.diag([(-1) ** i for i in range(covariance_matrix.shape[0])])
-    return T
+    return np.diag([(-1) ** i for i in range(covariance_matrix.shape[0])])
 
 
 def unitary_evolution(system: Qobj, interaction_time, interaction_H: Qobj):
@@ -105,6 +104,5 @@ def unitary_evolution(system: Qobj, interaction_time, interaction_H: Qobj):
 
     # Evolve composite state
     new_system = evolution_operator * system * evolution_operator.dag()
-    new_rho = new_system.ptrace([0, 1])
-    return new_rho
+    return new_system.ptrace([0, 1])
 

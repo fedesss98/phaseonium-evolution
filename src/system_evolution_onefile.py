@@ -123,13 +123,13 @@ def create_ancilla_qobj(alpha = complex(1/math.sqrt(2), 0),
 def create_system_qobj(dm_type='fock', n_dims=4, **kwargs):
     match dm_type:
         case 'coherent':
-            alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
+            alpha = kwargs.get('alpha', 1)
             state = coherent_dm(n_dims, alpha)
         case 'thermal':
-            n = kwargs.get('n') if 'n' in kwargs else 1
+            n = kwargs.get('n', 1)
             state = thermal_dm(n_dims, n)
         case 'fock':
-            n = kwargs.get('n') if 'n' in kwargs else 0
+            n = kwargs.get('n', 0)
             state = fock_dm(n_dims, n)
     return state
 
@@ -207,8 +207,7 @@ def create_system(rho1, rho2):
 
 
 def stable_temperature(ga, gb):
-    temperature = - 1 / math.log(ga / gb)
-    return temperature
+    return - 1 / math.log(ga / gb)
 
 
 def ancilla_parameters(ancilla):
@@ -219,10 +218,7 @@ def ancilla_parameters(ancilla):
 
 
 def kraus_evolvution(system, kraus_operators):
-    new_system = 0
-    for k in kraus_operators:
-        new_system += k @ system @ dag(k)
-    return new_system
+    return sum(k @ system @ dag(k) for k in kraus_operators)
 
 
 def meq_evolution(system, ga, gb, operators):
@@ -255,12 +251,12 @@ def main():
     # Create Bosonic operators for ME evolution
     operators = p.bosonic_operators
 
-    rho_evolution = list()
+    rho_evolution = []
     # Profiling
     tracemalloc.start()
-    snapshots = list()
-    memory_usage = list()
-    disk_usage = list()
+    snapshots = []
+    memory_usage = []
+    disk_usage = []
 
     # Check if a steady state exists
     if ga / gb < 1:

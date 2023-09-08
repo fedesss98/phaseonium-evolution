@@ -15,7 +15,7 @@ class Gate:
         self.lanes = list(lanes)
         self.name = name
         self.control_lane = control_lane
-        self.controlled = True if control_lane is not None else False
+        self.controlled = control_lane is not None
 
     @property
     def used_systems(self):
@@ -25,19 +25,14 @@ class Gate:
         for lane in lanes:
             if lane.system is not None and not lane.is_entangled():
                 systems.append(lane.system)
-            else:
-                # Append only lanes whose systems are not already in the list
-                if lane.system not in duplicated_systems:
-                    systems.append(lane.system)
-                    duplicated_systems.append(lane.system)
+            elif lane.system not in duplicated_systems:
+                systems.append(lane.system)
+                duplicated_systems.append(lane.system)
         return systems
 
     @staticmethod
     def check(control_system):
-        if control_system == -1:
-            return False
-        else:
-            return True
+        return control_system != -1
 
     def evolve(self, system):
         return system
@@ -75,23 +70,18 @@ class Lane:
     @system.setter
     def system(self, value):
         if not isinstance(value, qutip.Qobj) and value is not None:
-            if isinstance(value, int):
-                if value not in [1, -1]:
-                    raise ValueError("Classical systems may only take +1 or -1 values")
-            else:
+            if not isinstance(value, int):
                 raise ValueError("System in the circuit may only be qutip.Qobj objects or +1 or -1.")
+            if value not in [1, -1]:
+                raise ValueError("Classical systems may only take +1 or -1 values")
         self._system_evolution[self.controller.step] = value
         
     def is_entangled(self):
         if isinstance(self.system, int):
             return False
-        else:
-            rows = self.system.dims[0]
-            columns = self.system.dims[1]
-        if len(rows) == 1 and len(columns) == 1:
-            return False
-        else:
-            return True
+        rows = self.system.dims[0]
+        columns = self.system.dims[1]
+        return len(rows) != 1 or len(columns) != 1
 
     def __str__(self):
         if isinstance(self.system, qutip.Qobj):
@@ -124,7 +114,7 @@ class Circuit:
     def matrix(self):
         rows = len(self.lanes)
         columns = len(self.gates)
-        matrix = [[0] for row in range(rows)]
+        matrix = [[0] for _ in range(rows)]
         for row in range(rows):
             for col in range(columns):
                 if self.gates[col].control_lane == row:
@@ -197,11 +187,9 @@ class Circuit:
             current_system = lane.system_evolution[step + 1]
             if not lane.is_entangled():
                 used_systems.append(current_system)
-            else:
-                # Append only lanes whose systems are not already in the list
-                if current_system not in duplicated_systems:
-                    duplicated_systems.append(current_system)
-                    used_systems.append(current_system)
+            elif current_system not in duplicated_systems:
+                duplicated_systems.append(current_system)
+                used_systems.append(current_system)
         return used_systems
 
     def evaluate_gate(self, gate, step):
@@ -233,7 +221,7 @@ class Circuit:
     def loop(self, times, start=0, stop=-1):
         stop = len(self.gates) if stop == -1 else stop
         loop_gates = self.gates[start: stop]
-        for t in trange(times):
+        for _ in trange(times):
             self.t += 1
             for step, gate in enumerate(loop_gates):
                 self.step = step + start
@@ -247,8 +235,8 @@ class Circuit:
     def draw(self):
         columns = len(self.gates) + 1
         ascii_string = ''
-        max_header_len = max([len(lane.name) for lane in self.lanes])
-        max_name_len = max([len(gate.name) for gate in self.gates])
+        max_header_len = max(len(lane.name) for lane in self.lanes)
+        max_name_len = max(len(gate.name) for gate in self.gates)
         max_name_len = max_name_len if max_name_len % 2 == 0 else max_name_len + 1
         ascii_string += f'{" "*(max_header_len + max_name_len + 3)}'
         # Print column numbers

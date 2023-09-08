@@ -51,11 +51,9 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     if show_plots:
         plot_density_matrices(rho1, rho2, rho, t)
 
-    # Evolve
-    total_time_range = 2000  # Approximate time to thermalize the cavities
-    timesteps = int(total_time_range / timedelta)
     max_timesteps = kwargs.get('max_timesteps', 0)
     if kwargs.get('max_timesteps', 0) == 0:
+        timesteps = int(2000 / timedelta)
         max_timesteps = timesteps
     time = trange(t, t + max_timesteps)
     # Evolve density and save observables
