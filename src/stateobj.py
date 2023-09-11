@@ -322,18 +322,20 @@ class Physics:
         ])
 
         # Bosonic Operators
-        self.C = (self.theta*(2*self.aad).sqrtm()).cosm()
-        self.Cp = (self.theta*(2*self.ada).sqrtm()).cosm()
-        dividend = ((2*self.aad).sqrtm()).inv()
-        sine = (self.theta*(2*self.aad).sqrtm()).sinm()
+        argument_aad = self.theta * (2 * self.aad)
+        argument_ada = self.theta * (2 * self.ada)
+        self.C = (argument_aad.sqrtm()).cosm()
+        self.Cp = (argument_ada.sqrtm()).cosm()
+        dividend = ((2 * self.aad).sqrtm()).inv()
+        sine = (argument_aad.sqrtm()).sinm()
         self.S = self.ad * sine * dividend
         self.Sd = sine * dividend * self.a
         
         # Interaction
-        self.V = self.omega * tensor(self.a, self.sigmaplus) + tensor(self.ad, self.sigmaminus)
+        self.V = self.omega * (tensor(self.a, self.sigmaplus) + tensor(self.ad, self.sigmaminus))
         # Entangled System interactions
-        self.V1 = self.omega * tensor(self.a1, self.sigmaplus) + tensor(self.ad1, self.sigmaminus)
-        self.V2 = self.omega * tensor(self.a2, self.sigmaplus) + tensor(self.ad2, self.sigmaminus)
+        self.V1 = self.omega * (tensor(self.a1, self.sigmaplus) + tensor(self.ad1, self.sigmaminus))
+        self.V2 = self.omega * (tensor(self.a2, self.sigmaplus) + tensor(self.ad2, self.sigmaminus))
 
     @property
     def bosonic_operators(self):

@@ -23,27 +23,39 @@ def _meq_evolution(system, physic_object, interaction_time):
     return master_equation(system, ga, gb, operators)
 
 
-def meq_evolution(time, dt_mode, experiment, rho, covariances, heat_transfers, exact_evolution):
+def time_evolution(time, dt_avg, dt_std, experiment, rho, covariances, heat_transfers, **kwargs):
+    distribution = kwargs.get('distribution', 'gaussian')
+    exact_evolution = kwargs.get('exact', False)
+    interaction_times = []
+    rng = np.random.default_rng(seed=int(kwargs.get('seed', 0)))
     for t in time:
         # Extract one interaction time from a Maxwell distribution
-        interaction_time = use.maxwell_extraction(dt_mode)
+        if distribution in ['maxwell', 'maxwellian']:
+            interaction_time = use.maxwell_extraction(dt_avg)
+        elif distribution == 'gaussian':
+            interaction_time = use.gaussian_extraction(rng, dt_avg, dt_std)
+        else:
+            raise ValueError('Distribution type unknown: it must be "maxwell" or "gaussian".')
+        interaction_times.append(interaction_time)
         if exact_evolution:
             rho = _unitary_evolution(rho, experiment, interaction_time)
         else:
             delta_rho = _meq_evolution(rho, experiment, interaction_time)
             rho = rho + delta_rho
-        if not hilbert_is_good(rho, 'unitary'):
+        if not hilbert_is_good(rho, 'last_element'):
             print(f'Hilbert space truncation is no more valid at step {t}')
             break
         else:
             covariances.append(covariance(rho, experiment.quadratures))
             # heat_transfers.append(_heat_transfer(delta_rho, experiment))
-    return rho, covariances, heat_transfers
+    return rho, covariances, heat_transfers, interaction_times
 
 
-def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
+def main(dims=20, timedelta=(1.0, 0.1), show_plots=False, **kwargs):
     print(f'Starting stochastic evolution of {dims}-dimensional system with interaction time {timedelta}.')
     log_id = kwargs.get('id', '000')
+    dt_std = timedelta[1] if isinstance(timedelta, tuple) else 0
+    timedelta = timedelta[0] if isinstance(timedelta, tuple) else timedelta
     experiment = setup_experiment(dims, timedelta, **kwargs)
     rho1, rho2 = experiment.systems['rho1'], experiment.systems['rho2']
     # Create new product state and observables or load them evolved until time t
@@ -51,19 +63,18 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     if show_plots:
         plot_density_matrices(rho1, rho2, rho, t)
 
-    # Evolve
-    total_time_range = 2000  # Approximate time to thermalize the cavities
-    timesteps = int(total_time_range / timedelta)
     max_timesteps = kwargs.get('max_timesteps', 0)
     if kwargs.get('max_timesteps', 0) == 0:
+        timesteps = int(2000 / timedelta)
         max_timesteps = timesteps
     time = trange(t, t + max_timesteps)
     # Evolve density and save observables
-    rho, covariances, heat_transfers = meq_evolution(
-        time, timedelta, experiment, rho, covariances, heat_transfers,
-        kwargs.get('exact', False)
+    rho, covariances, heat_transfers, interaction_times = time_evolution(
+        time, timedelta, dt_std, experiment, rho, covariances, heat_transfers,
+        **kwargs
     )
-
+    # Add interaction times to kwargs to save them
+    kwargs['stochastic_times'] = interaction_times
     save_data(dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho, **kwargs)
 
     if show_plots:
@@ -75,8 +86,8 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
 
 if __name__ == '__main__':
     d = 17
-    dt = 1.0
+    dt = (1.0, 0.1)
     plots = False
     partial = 0
     alpha = complex(1 / np.sqrt(1 + 2*np.e), 0)
-    main(d, dt, plots, partial=partial, max_timesteps=500, alpha=alpha)
+    main(d, dt, plots, partial=partial, max_timesteps=500, alpha=alpha, distribution='gaussian')

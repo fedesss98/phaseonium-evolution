@@ -29,7 +29,7 @@ def simulate(dims, timedelta, **kwargs):
 
 @cli.command()
 @click.option('--dims', '-d', type=int, default=20, help='Number of dimensions.')
-@click.option('--timedelta', '-dt', type=float, default=0.1, help='Average Interaction Time.')
+@click.option('--timedelta', '-dt', type=float, nargs=2, default=(1.0, 0.1), help='Average Interaction Time or (Avg, StDev).')
 @click.option('--omega', type=float, default=1.0, help='Interaction strength.')
 @click.option('--alpha', '-a', type=float, help='Ancilla excited state population')
 @click.option('--phi', '-p', type=float, help='Ancilla ground states phase')
@@ -39,7 +39,9 @@ def simulate(dims, timedelta, **kwargs):
 @click.option('--max-timesteps', type=int, default=0, help='Maximum number of timesteps')
 @click.option('--partial', type=int, default=0, help='Save partial evolution')
 @click.option('-id', type=str, default='000', help='Log ID for the simulation')
+@click.option('-seed', type=str, default='0001', help='Log ID for the simulation')
 @click.option('--exact/--not-exact', default=False, help='Log ID for the simulation')
+@click.argument('distribution', default='gaussian')
 def stochastic_simulate(dims, timedelta, **kwargs):
     """Run the main function with the given dimensions and stochastic time deltas."""
     stochastic_evolution(dims=dims, timedelta=timedelta, **kwargs)

@@ -14,9 +14,36 @@ For the paper we use:
 In simulations, with phi=pi/2 we have:
     KT = 1 -> alpha = 1/Sqrt[1 + 2 e]
     KT = 2 -> alpha = 1/Sqrt[1 + 2 e^(1/2)]
+
+Try to change alpha and phi as to have the same KT but with different dynamics
+(Kraus operators does change with gamma alpha and gamma beta).
+
+KT = 1
+____________________
+    phi   |   alpha
+       0  |  0.518596    1/Sqrt[1 + E]
+    pi/6  |  0.505499    1/Sqrt[1 - 4 (-2 + Sqrt[3]) E]
+    pi/4  |  0.488843    1/Sqrt[1 - 2 (-2 + Sqrt[2]) E]
+    pi/3  |  0.465022    Sqrt[3/(3 + 4 E)]
+    pi/2  |  0.394160    1/Sqrt[1 + 2 E]
+      pi  |              inf
+
+KT = 2
+____________________
+    phi   |   alpha
+       0  |  0.614443    1/Sqrt[1 + Sqrt[E]]
+    pi/6  |  0.601157    1/Sqrt[1 - 4 (-2 + Sqrt[3]) Sqrt[E]]
+    pi/4  |  0.584047    1/Sqrt[1 - 2 (-2 + Sqrt[2]) Sqrt[E]]
+    pi/3  |  0.559166    Sqrt[3/(3 + 4 Sqrt[E])]
+    pi/2  |  0.482386    1/Sqrt[1 + 2 Sqrt[E]]
+      pi  |              inf
+
+Partial evolution should highlight real-evolution stroboscopic points.
 """
 import cmath
 import math
+
+import pandas as pd
 from qutip import Qobj, tensor
 
 import numpy as np
@@ -129,14 +156,12 @@ def plot_density_matrix(system, diagonal=False, title=None):
     if diagonal:
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.plot(np.diag(system))
-        ax.set_title(title)
-        plt.show()
     else:
         system = np.real(system)
         fig, ax = plt.subplots(figsize=(10, 10))
         ax.matshow(system)
-        ax.set_title(title)
-        plt.show()
+    ax.set_title(title)
+    plt.show()
     return None
 
 
@@ -154,11 +179,14 @@ def ancilla_parameters(ancilla):
     return alpha, beta, phi
 
 
-def kraus_evolvution(system, kraus_operators):
-    new_system = 0
+def _kraus_evolvution(system, physic_object):
+    kraus_operators = physic_object.kraus_operators_2_cavities()
+    dims = physic_object.dims
+    new_system = Qobj()
+    system = Qobj(system, dims=[[dims, dims], [dims, dims]])
     for k in kraus_operators:
-        new_system += k @ system @ dag(k)
-    return new_system
+        new_system += k * system * dag(k)
+    return new_system.full()
 
 
 def _unitary_evolution(system, physic_object: Physics):
@@ -190,7 +218,7 @@ def _partial_evolution(system, physic_object, steps_per_timestep=3):
         Qobj(system, dims=[[rho_d, rho_d], [rho_d, rho_d]]),
         physic_object.ancilla
     )
-    for s in range(steps_per_timestep - 1):
+    for _ in range(steps_per_timestep - 1):
         sigma = evolution_operator * sigma * evolution_operator.dag()
         partial_rho = sigma.ptrace([0, 1])
         partial_covariances.append(covariance(partial_rho.full(), physic_object.quadratures))
@@ -209,7 +237,7 @@ def _heat_transfer(dr, experiment):
 
 def hilbert_is_good(system, check):
     """Check if the Hilbert space truncation is valid"""
-    threshold = 9e-4
+    threshold = 1e-9
     if check == 'unitary':
         diagonal_sum = np.sum(system.diagonal())
         return np.abs(diagonal_sum - 1) < threshold
@@ -227,12 +255,12 @@ def meq_evolution(time, experiment, rho, covariances, heat_transfers, partial, e
             covariances.extend(partial_covariances)
         if exact_evolution:
             old_rho = rho
-            rho = _unitary_evolution(old_rho, experiment)
+            rho = _kraus_evolvution(old_rho, experiment)
             delta_rho = rho - old_rho
         else:
             delta_rho = _meq_evolution(rho, experiment)
             rho = rho + delta_rho
-        if not hilbert_is_good(rho, 'unitary'):
+        if not hilbert_is_good(rho, 'last_element'):
             print(f'Hilbert space truncation is no more valid at step {t}')
             break
         else:
@@ -251,6 +279,10 @@ def save_data(dims, timedelta, t, covariances, heat_transfers, rho, **kwargs):
     np.save(root_folder + f'{log_id}_rho_covariance_D{dims}_t{t}_dt{timedelta}', covariances)
     np.save(root_folder + f'{log_id}_rho_heats_D{dims}_t{t}_dt{timedelta}', heat_transfers)
     np.save(root_folder + f'{log_id}_rho_last_D{dims}_t{t}_dt{timedelta}', rho)
+    if kwargs.get('distribution', None) is not None:
+        times = kwargs['stochastic_times']
+        distribution = kwargs['distribution']
+        np.save(root_folder + f'{log_id}_rho_{distribution}_times_D{dims}_t{t}_dt{timedelta}', times)
 
 
 def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
@@ -263,11 +295,9 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
     if show_plots:
         plot_density_matrices(rho1, rho2, rho, t)
 
-    # Evolve
-    total_time_range = 2000  # Approximate time to thermalize the cavities
-    timesteps = int(total_time_range / timedelta)
     max_timesteps = kwargs.get('max_timesteps', 0)
     if kwargs.get('max_timesteps', 0) == 0:
+        timesteps = int(2000 / timedelta)
         max_timesteps = timesteps
     time = trange(t, t + max_timesteps)
     # Evolve density and save observables
@@ -291,4 +321,5 @@ if __name__ == '__main__':
     plots = False
     partial = 0
     alpha = complex(1 / np.sqrt(1 + 2*np.e), 0)
-    main(d, dt, plots, partial=partial, max_timesteps=500, alpha=alpha)
+    exact = True
+    main(d, dt, plots, partial=partial, max_timesteps=500, alpha=alpha, exact=exact)
