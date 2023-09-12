@@ -138,8 +138,8 @@ def mean_photon_numbers(cov: np.ndarray):
     From <n> = q^2 + p^2 - 1/2
     There is a problem with qutip coherent states, which have <n> = q^2 + p^2
     """
-    n1 = np.trace(cov[0:2, 0:2])
-    n2 = np.trace(cov[2:4, 2:4])
+    n1 = np.trace(cov[0:2, 0:2]) / 2 - 0.5
+    n2 = np.trace(cov[2:4, 2:4]) / 2 - 0.5
     return n1, n2
 
 
@@ -174,7 +174,7 @@ def _determinant_minimum(a, b, c, d):
     return e_min
 
 
-def gaussian_quantum_discord(covariance_matrix):
+def gaussian_quantum_discord(covariance_matrix,):
     """
     @article{PhysRevLett.105.030501,
       title = {Quantum versus Classical Correlations in Gaussian States},
@@ -195,11 +195,16 @@ def gaussian_quantum_discord(covariance_matrix):
     Applying Gaussian quantum discord to quantum key distribution.
     ArXiv. /abs/1310.4253
     """
-    invariants = covariance_invariants(covariance_matrix)
+    l_invariants = covariance_invariants(covariance_matrix)
+    # Reverse local invariants
+    r_invariants = [l_invariants[1], l_invariants[0], l_invariants[2], l_invariants[3]]
     d1, d2 = symplectic_eigenvalues(covariance_matrix)
-    e_min = _determinant_minimum(*invariants)
+    l_e_min = _determinant_minimum(*l_invariants)
+    r_e_min = _determinant_minimum(*r_invariants)
     f = minientropy
-    return f(np.sqrt(invariants[1])) - f(d1) - f(d2) + f(np.sqrt(e_min))
+    left_discord = f(np.sqrt(l_invariants[1])) - f(d1) - f(d2) + f(np.sqrt(l_e_min))
+    right_discord = f(np.sqrt(r_invariants[1])) - f(d1) - f(d2) + f(np.sqrt(r_e_min))
+    return left_discord, right_discord
 
 
 def mutual_information(covariance_matrix):
