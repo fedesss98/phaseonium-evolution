@@ -76,7 +76,7 @@ def setup_experiment(dims, timedelta, **kwargs):
                          alpha=alpha,
                          phi=phi)
     experiment.create_system(state, n=n1, alpha=n1, name='rho1')
-    experiment.create_system(state, n=n2, alpha=n1, name='rho2')
+    experiment.create_system(state, n=n2, alpha=n2, name='rho2')
 
     # Check if a steady state exists
     if experiment.ga / experiment.gb < 1:
@@ -318,8 +318,14 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
 if __name__ == '__main__':
     d = 17
     dt = 1.0
-    plots = False
-    partial = 0
-    alpha = complex(1 / np.sqrt(1 + 2*np.e), 0)
-    exact = True
-    main(d, dt, plots, partial=partial, max_timesteps=500, alpha=alpha, exact=exact)
+    kwargs = {
+        'plots': False,
+        'partial': 0,
+        'alpha': complex(1 / np.sqrt(1 + 2 * np.e), 0),
+        'exact': False,
+        'state': 'fock',
+        'n1': 1,
+        'n2': 0,
+    }
+
+    main(d, dt, **kwargs)

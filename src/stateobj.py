@@ -273,7 +273,7 @@ class Physics:
         self.dt = interaction_time
         self.omega = interaction_strength
         self.theta = 1.0 * interaction_strength * interaction_time
-        self.dims = dimension
+        self.dims = int(dimension)
         # Ancilla
         self._alpha = complex(1 / math.sqrt(1 + 2*np.e), 0) if 'alpha' not in kwargs else kwargs.get('alpha')
         self._beta = cmath.sqrt(1 - self._alpha ** 2) if 'beta' not in kwargs else kwargs.get('beta')
@@ -363,7 +363,7 @@ class Physics:
                 n = kwargs.get('n') if 'n' in kwargs else 1
                 state = thermal_dm(self.dims, n)
             case 'fock':
-                n = kwargs.get('n') if 'n' in kwargs else 0
+                n = int(kwargs.get('n')) if 'n' in kwargs else 0
                 state = fock_dm(self.dims, n)
             case 'maxmix':
                 state = maximally_mixed_dm(self.dims)

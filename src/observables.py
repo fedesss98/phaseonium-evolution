@@ -119,7 +119,8 @@ def symplectic_temperatures(cov_or_nus: np.ndarray):
     with temperature parameters given by symplectic eigenvalues.
     """
     dk = _get_symplectic_eigenvalues(cov_or_nus)
-    k2 = 1 / np.sqrt(2)  # Ferraro, Olivares - 2005 pag.1 - pag.14
+    # k2 = 1 / np.sqrt(2)  # Ferraro, Olivares - 2005 pag.1 - pag.14
+    k2 = 1.5  # Ferraro, Olivares - 2005 pag.1 - pag.14
     f = 1 / (4 * k2**2)
     betak = [np.log((d + 1 + f) / (d - f)) for d in dk]
     return 1 / betak[0], 1 / betak[1]
@@ -141,6 +142,21 @@ def mean_photon_numbers(cov: np.ndarray):
     n1 = np.trace(cov[0:2, 0:2]) / 2 - 0.5
     n2 = np.trace(cov[2:4, 2:4]) / 2 - 0.5
     return n1, n2
+
+
+def mean_temperatures(cov: np.ndarray):
+    """
+    From the creation of QuTip thermal states, where:
+    beta = np.log(1.0 / n + 1.0)
+    Args:
+        cov:
+
+    Returns:
+
+    """
+    n1, n2 = mean_photon_numbers(cov)
+    betas = [np.log(1.0 / n + 1.0) for n in [n1, n2]]
+    return 1 / betas[0], 1 / betas[1]
 
 
 def minientropy(d):
@@ -174,7 +190,7 @@ def _determinant_minimum(a, b, c, d):
     return e_min
 
 
-def gaussian_quantum_discord(covariance_matrix,):
+def gaussian_quantum_discord(covariance_matrix):
     """
     @article{PhysRevLett.105.030501,
       title = {Quantum versus Classical Correlations in Gaussian States},
@@ -234,6 +250,7 @@ def logarithmic_negativity(covariance_matrix):
     Serafini, Quantum Continuos Variables, pag.187
     """
     k2 = 1 / np.sqrt(2)  # Ferraro, Olivares - 2005 pag.1 - pag.14
+    k2 = 1 / 2
     d1, d2 = symplectic_eigenvalues_transposed(covariance_matrix)
     d_minus = min(d1, d2)
-    return max(0, -np.log((2 * k2) ** 2 * d_minus))
+    return max(0, -np.log2((2 * k2) ** 2 * d_minus))
