@@ -343,24 +343,21 @@ class Physics:
 
     @property
     def quadratures(self):
-        # Quadrature Operators Vector
-        quadratures = [self.q1.full(), self.p1.full(),
-                       self.q2.full(), self.p2.full()]
-        return quadratures
+        return [self.q1.full(), self.p1.full(), self.q2.full(), self.p2.full()]
 
     def create_system(self, dm_type='fock', name=None, **kwargs):
         if name is None:
             name = f'{dm_type}_state_{len(self.systems)}'
         match dm_type:
             case 'coherent':
-                alpha = kwargs.get('alpha') if 'alpha' in kwargs else 1
+                alpha = kwargs.get('alpha', 1)
                 state = coherent_dm(self.dims, alpha, method='analytic')
             case 'thermal-enr':
-                dims = self.dims if isinstance(self.dims, list) else list([self.dims])
-                excitations = kwargs.get('excitations') if 'excitations' in kwargs else 1
+                dims = self.dims if isinstance(self.dims, list) else [self.dims]
+                excitations = kwargs.get('excitations', 1)
                 state = enr_thermal_dm(dims, excitations, n=1)
             case 'thermal':
-                n = kwargs.get('n') if 'n' in kwargs else 1
+                n = kwargs.get('n', 1)
                 state = thermal_dm(self.dims, n)
             case 'fock':
                 n = int(kwargs.get('n')) if 'n' in kwargs else 0
@@ -368,11 +365,11 @@ class Physics:
             case 'maxmix':
                 state = maximally_mixed_dm(self.dims)
             case 'random':
-                seed = kwargs.get('seed') if 'seed' in kwargs else 21
+                seed = kwargs.get('seed', 21)
                 state = rand_dm(self.dims)
             case _:
-                a = kwargs.get('a') if 'a' in kwargs else complex(1, 0)
-                b = kwargs.get('b') if 'b' in kwargs else complex(0, 0)
+                a = kwargs.get('a', complex(1, 0))
+                b = kwargs.get('b', complex(0, 0))
                 state = Qobj(np.array([[a, b], [b.conjugate(), 1 - a]]))
         self.systems[name] = {'density': state, 'type': dm_type}
         return state

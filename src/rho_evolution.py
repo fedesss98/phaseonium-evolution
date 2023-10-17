@@ -316,14 +316,14 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
 
 
 if __name__ == '__main__':
-    d = 17
-    dt = 1.0
+    d = 25
+    dt = 0.4
     kwargs = {
         'plots': False,
         'partial': 0,
         'alpha': complex(1 / np.sqrt(1 + 2 * np.e), 0),
         'exact': False,
-        'state': 'fock',
+        'state': 'coherent',
         'n1': 1,
         'n2': 0,
     }

@@ -15,7 +15,7 @@ def calc_eignevalues(data: np.ndarray):
 
 
 def entropy_vn(rho: np.ndarray, base=np.e, fast=True):
-    """ Tr[rho log(rho)] done by diagonalizing the density matrix"""
+    """Tr[rho log(rho)] done by diagonalizing the density matrix"""
     vals = calc_eignevalues(rho)
     nzvals = vals[vals != 0]  # Not-zero eigenvalues
     # Choose function to use
