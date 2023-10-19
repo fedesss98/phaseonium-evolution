@@ -65,8 +65,8 @@ except ModuleNotFoundError:
 def setup_experiment(dims, timedelta, **kwargs):
     omega = kwargs.get('omega', 1)
     # Ancilla parameters
-    alpha = kwargs['alpha'] if kwargs.get('alpha', None) is not None else default_alpha()
-    phi = kwargs['phi'] if kwargs.get('phi', None) is not None else default_phi()
+    alpha = kwargs.get('alpha', default_alpha())
+    phi = kwargs.get('phi', default_phi())
     # Cavities parameters
     state = kwargs.get('state', 'thermal')
     n1 = kwargs.get('n1', 1)
@@ -283,6 +283,9 @@ def save_data(dims, timedelta, t, covariances, heat_transfers, rho, **kwargs):
         times = kwargs['stochastic_times']
         distribution = kwargs['distribution']
         np.save(root_folder + f'{log_id}_rho_{distribution}_times_D{dims}_t{t}_dt{timedelta}', times)
+    if kwargs.get('phases', None) is not None:
+        phis = kwargs['phases']
+        np.save(root_folder + f'{log_id}_rho_phis_D{dims}_t{t}_dt{timedelta}', phis)
 
 
 def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):

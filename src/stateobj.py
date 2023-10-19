@@ -283,8 +283,9 @@ class Physics:
         self._phi_1 = 0 if 'phi_1' not in kwargs else kwargs.get('phi_1')
         self._phi_2 = 0 if 'phi_2' not in kwargs else kwargs.get('phi_2')
         self.ancilla = self.create_ancilla(self._alpha, self._beta, self._phi)
+        # Ancilla coefficients are defined as properties
         # Systems
-        self.systems = dict()
+        self.systems = {}
         # Identity
         self.qeye = qeye(dimension)
         # Creation and Annihilation Operators
@@ -344,6 +345,15 @@ class Physics:
     @property
     def quadratures(self):
         return [self.q1.full(), self.p1.full(), self.q2.full(), self.p2.full()]
+
+    @property
+    def phi(self):
+        return self._phi
+
+    @phi.setter
+    def phi(self, phi):
+        self._phi = phi
+        self.ancilla = self.create_ancilla(self._alpha, self._beta, self._phi)
 
     def create_system(self, dm_type='fock', name=None, **kwargs):
         if name is None:
@@ -428,8 +438,7 @@ class Physics:
 
     @property
     def stable_temperature(self):
-        temperature = - 1 / math.log(self.ga / self.gb)
-        return temperature
+        return - 1 / math.log(self.ga / self.gb)
 
     def kraus_operators_2_cavities(self):
         cc = qutip.tensor(self.C, self.C)

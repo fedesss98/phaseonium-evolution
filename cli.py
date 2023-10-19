@@ -48,6 +48,23 @@ def stochastic_simulate(dims, timedelta, **kwargs):
 
 
 @cli.command()
+@click.option('--dims', '-d', type=int, default=25, help='Number of dimensions.')
+@click.option('--timedelta', '-dt', type=float, default=0.8, help='Interaction time.')
+@click.option('--omega', type=float, default=1.0, help='Interaction strength.')
+@click.option('--alpha', '-a', default=0.1, type=float, help='Ancilla excited state population')
+@click.option('--phi', '-p', type=float, help='Ancilla ground states phase')
+@click.option('--state', '-s', type=str, default='thermal', help='Cavities state type')
+@click.option('-n1', type=float, default=0.5819767, help='Cavity 1 mean photon number')
+@click.option('-n2', type=float, default=0.5819767, help='Cavity 2 mean photon number')
+@click.option('--max-timesteps', type=int, default=300, help='Maximum number of timesteps')
+@click.option('-id', type=str, default='000', help='Log ID for the simulation')
+@click.option('-seed', type=str, default='0001', help='Log ID for the simulation')
+def stochastic_phase_simulate(dims, timedelta, **kwargs):
+    """Run the main function with the given dimensions and stochastic time deltas."""
+    stochastic_evolution(dims=dims, timedelta=timedelta, **kwargs)
+
+
+@cli.command()
 @click.option('--timedelta', type=float, default=0.1, help='Time delta.')
 @click.option('--dims', '-d', multiple=True, default=[20])
 @click.argument('kwargs', nargs=-1)
