@@ -60,17 +60,19 @@ def set_matplotlib_defaults():
     mpl.rcParams['grid.color'] = 'lightgrey'
     mpl.rcParams['grid.linestyle'] = '--'
     mpl.rcParams['grid.linewidth'] = 0.5
+    mpl.rcParams['lines.linewidth'] = 2.5
     mpl.rcParams['xtick.color'] = 'lightgrey'
     mpl.rcParams['ytick.color'] = 'lightgrey'
     mpl.rcParams['xtick.labelcolor'] = 'black'
     mpl.rcParams['ytick.labelcolor'] = 'black'
     mpl.rcParams['axes.edgecolor'] = 'lightgrey'
-    mpl.rcParams['figure.facecolor'] = 'white'
     mpl.rcParams['text.usetex'] = False
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.size'] = 14
+    mpl.rcParams['font.family'] = 'Times New Roman'
+    mpl.rcParams['font.size'] = 20
     mpl.rcParams['savefig.dpi'] = 300
     mpl.rcParams['savefig.format'] = 'eps'
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['font.family'] = 'STIXGeneral'
 
     return None
 
