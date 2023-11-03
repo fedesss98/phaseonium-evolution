@@ -142,7 +142,11 @@ def load_or_create(experiment, log_id, create=False):
         log_id = log_id + '_' if log_id != '000' else ''
         rho = np.load(root_folder + log_id + f'rho_last_D{dims}_t{last_t}_dt{dt}' + suffix)
         covariances = np.load(root_folder + log_id + f'rho_covariance_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
-        heats = np.load(root_folder + log_id + f'rho_heats_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
+        try:
+            heats = np.load(root_folder + log_id + f'rho_heats_D{dims}_t{last_t}_dt{dt}' + suffix).tolist()
+        except FileNotFoundError:
+            print("Heats not loaded")
+            heats = None
         print(f'Saved files exists until time {last_t}')
         return rho, covariances, heats, last_t
     else:
@@ -269,7 +273,7 @@ def meq_evolution(time, experiment, rho, covariances, heat_transfers, partial, e
     return rho, covariances, heat_transfers
 
 
-def save_data(dims, timedelta, t, covariances, heat_transfers, rho, **kwargs):
+def save_data(dims, timedelta, t, covariances, last_rho, heat_transfers=None, **kwargs):
     dm_type = kwargs.get('state', 'thermal')
     root_folder = get_root(dm_type)
     log_id = kwargs.get('id', '000')
@@ -277,15 +281,9 @@ def save_data(dims, timedelta, t, covariances, heat_transfers, rho, **kwargs):
         log_id = use.get_last_id(root_folder)
     # Save data
     np.save(root_folder + f'{log_id}_rho_covariance_D{dims}_t{t}_dt{timedelta}', covariances)
-    np.save(root_folder + f'{log_id}_rho_heats_D{dims}_t{t}_dt{timedelta}', heat_transfers)
-    np.save(root_folder + f'{log_id}_rho_last_D{dims}_t{t}_dt{timedelta}', rho)
-    if kwargs.get('distribution', None) is not None:
-        times = kwargs['stochastic_times']
-        distribution = kwargs['distribution']
-        np.save(root_folder + f'{log_id}_rho_{distribution}_times_D{dims}_t{t}_dt{timedelta}', times)
-    if kwargs.get('phases', None) is not None:
-        phis = kwargs['phases']
-        np.save(root_folder + f'{log_id}_rho_phis_D{dims}_t{t}_dt{timedelta}', phis)
+    if heat_transfers is not None:
+        np.save(root_folder + f'{log_id}_rho_heats_D{dims}_t{t}_dt{timedelta}', heat_transfers)
+    np.save(root_folder + f'{log_id}_rho_last_D{dims}_t{t}_dt{timedelta}', last_rho)
 
 
 def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
@@ -309,7 +307,7 @@ def main(dims=20, timedelta=1.0, show_plots=False, **kwargs):
         kwargs.get('partial', 0), kwargs.get('exact', False)
     )
 
-    save_data(dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho, **kwargs)
+    save_data(dims, timedelta, t + max_timesteps, covariances, rho, heat_transfers, **kwargs)
 
     if show_plots:
         # Trace out evolved cavities
