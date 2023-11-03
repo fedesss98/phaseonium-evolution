@@ -42,8 +42,18 @@ def time_evolution(time, dt, experiment, rho, covariances, **kwargs):
             break
         else:
             covariances.append(covariance(rho, experiment.quadratures))
-            # heat_transfers.append(_heat_transfer(delta_rho, experiment))
     return rho, covariances, phis
+
+
+def save_all_data(dims, timedelta, timesteps, covariances, rho, phis, **kwargs):
+    dm_type = kwargs.get('state', 'thermal')
+    log_id = kwargs.get('id', '000')
+    root_folder = get_root(dm_type)
+    save_data(dims, timedelta, timesteps, covariances, rho, **kwargs)
+    np.save(
+        f'{root_folder}{log_id}_rho_phis_D{dims}_t{timesteps}_dt{timedelta}',
+        phis,
+    )
 
 
 def main(dims=25, timedelta=0.8, **kwargs):
@@ -65,8 +75,7 @@ def main(dims=25, timedelta=0.8, **kwargs):
         **kwargs
     )
     # Add interaction times to kwargs to save them
-    kwargs['phases'] = phis
-    save_data(dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho, **kwargs)
+    save_all_data(dims, timedelta, t + max_timesteps, covariances, rho, phis, **kwargs)
 
 
 if __name__ == '__main__':
@@ -74,6 +83,6 @@ if __name__ == '__main__':
     dt = 0.8
     alpha = 0.1
     phi = 2.5881600  # Final Temperature = 0.5
-    log_id = '0P00Th'
-    main(d, dt, max_timesteps=500, alpha=alpha, phi=phi, id=log_id)
+    log_id = 'XXXXXX'
+    main(d, dt, max_timesteps=20, alpha=alpha, phi=phi, id=log_id)
 

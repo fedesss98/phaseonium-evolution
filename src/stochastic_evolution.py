@@ -51,6 +51,18 @@ def time_evolution(time, dt_avg, dt_std, experiment, rho, covariances, heat_tran
     return rho, covariances, heat_transfers, interaction_times
 
 
+def save_all_data(dims, timedelta, timesteps, covariances, rho, heat_transfers, interaction_times, **kwargs):
+    dm_type = kwargs.get('state', 'thermal')
+    log_id = kwargs.get('id', '000')
+    root_folder = get_root(dm_type)
+    save_data(dims, timedelta, timesteps, covariances, rho, heat_transfers, **kwargs)
+    distribution = kwargs['distribution']
+    np.save(
+        f'{root_folder}{log_id}_rho_{distribution}_times_D{dims}_t{timesteps}_dt{timedelta}',
+        interaction_times,
+    )
+
+
 def main(dims=20, timedelta=(1.0, 0.1), show_plots=False, **kwargs):
     print(f'Starting stochastic evolution of {dims}-dimensional system with interaction time {timedelta}.')
     log_id = kwargs.get('id', '000')
@@ -74,8 +86,7 @@ def main(dims=20, timedelta=(1.0, 0.1), show_plots=False, **kwargs):
         **kwargs
     )
     # Add interaction times to kwargs to save them
-    kwargs['stochastic_times'] = interaction_times
-    save_data(dims, timedelta, t + max_timesteps, covariances, heat_transfers, rho, **kwargs)
+    save_all_data(dims, timedelta, t + max_timesteps, covariances, rho, heat_transfers, interaction_times, **kwargs)
 
     if show_plots:
         # Trace out evolved cavities
