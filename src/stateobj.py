@@ -323,10 +323,10 @@ class Physics:
         ])
 
         # Bosonic Operators
-        argument_aad = self.theta * (2 * self.aad)
-        argument_ada = self.theta * (2 * self.ada)
-        self.C = (argument_aad.sqrtm()).cosm()
-        self.Cp = (argument_ada.sqrtm()).cosm()
+        argument_aad = (2 * self.aad)
+        argument_ada = (2 * self.ada)
+        self.C = (self.theta * argument_aad.sqrtm()).cosm()
+        self.Cp = (self.theta * argument_ada.sqrtm()).cosm()
         dividend = ((2 * self.aad).sqrtm()).inv()
         sine = (argument_aad.sqrtm()).sinm()
         self.S = self.ad * sine * dividend
